@@ -1,4 +1,5 @@
 import warnings
+from pathlib import Path
 from typing import Dict, List, Literal, Optional, Union
 
 import ase.calculators.calculator
@@ -51,7 +52,7 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
         model: Optional[str] = None,
         version: Optional[str] = "latest",
         dtype: Optional[torch.dtype] = None,
-        checkpoint_path: Optional[str] = None,
+        checkpoint_path: Optional[Union[str, Path]] = None,
         variants: Optional[Dict[str, Optional[str]]] = None,
         rotational_average_order: Optional[int] = None,
         rotational_average_batch_size: Optional[int] = None,
@@ -148,7 +149,7 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
 
         # Branch 1: Loading from a local checkpoint
         if checkpoint_path is not None:
-            model_name, size, version = parse_checkpoint_filename(checkpoint_path)
+            model_name, size, version = parse_checkpoint_filename(str(checkpoint_path))
         # Branch 2: Loading from HuggingFace
         else:
             if model is None:
@@ -178,6 +179,10 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
                 version=version,
                 checkpoint_path=checkpoint_path,
             )
+
+            # get_upet only scripts the inner model
+            # also run code in AtomisticModel as TorchScript
+            loaded_model = torch.jit.script(loaded_model)
 
         model_outputs = loaded_model.capabilities().outputs
         self._model_outputs = model_outputs

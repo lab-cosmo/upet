@@ -1,6 +1,7 @@
 import os
 
 import pytest
+from metatomic.torch import AtomisticModel
 
 from upet._models import (
     get_available_models,
@@ -55,7 +56,8 @@ def test_get_upet(model_name):
     all_model_versions = get_versions_for_model(model, size)
 
     for version in all_model_versions:
-        get_upet(model=model, size=size, version=version)
+        upet_model = get_upet(model=model, size=size, version=version)
+        assert isinstance(upet_model, AtomisticModel)
 
 
 def test_available_models_are_published():

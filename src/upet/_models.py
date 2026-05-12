@@ -3,6 +3,7 @@ import os
 import re
 import warnings
 from functools import lru_cache
+from pathlib import Path
 from typing import List, Optional, Tuple, Union
 
 import torch
@@ -215,7 +216,7 @@ def _get_upet_exported_atomistic_model(
     model: Optional[str] = None,
     size: Optional[str] = None,
     version: Optional[Union[str, Version]] = "latest",
-    checkpoint_path: Optional[str] = None,
+    checkpoint_path: Optional[Union[str, Path]] = None,
 ) -> AtomisticModel:
     """
     Internal helper to load a UPET AtomisticModel without caching or TorchScript.
@@ -223,9 +224,14 @@ def _get_upet_exported_atomistic_model(
     This function is separate from get_upet() to allow for caching and post-processing
     in the public API function.
     """
+    assert model is None or isinstance(model, str)
+    assert size is None or isinstance(size, str)
+    assert version is None or isinstance(version, (str, Version))
+    assert checkpoint_path is None or isinstance(checkpoint_path, (str, Path))
+
     if checkpoint_path is not None:
         # Try to parse info from checkpoint filename
-        model, size, version = parse_checkpoint_filename(checkpoint_path)
+        model, size, version = parse_checkpoint_filename(str(checkpoint_path))
         logging.info(f"Loading model from checkpoint: {checkpoint_path}")
         path = checkpoint_path
     else:
@@ -255,7 +261,7 @@ def get_upet(
     model: Optional[str] = None,
     size: Optional[str] = None,
     version: Optional[Union[str, Version]] = "latest",
-    checkpoint_path: Optional[str] = None,
+    checkpoint_path: Optional[Union[str, Path]] = None,
 ) -> AtomisticModel:
     """Get a metatomic ``AtomisticModel`` for a UPET MLIP.
 
@@ -273,12 +279,17 @@ def get_upet(
         model=model, size=size, version=version, checkpoint_path=checkpoint_path
     )
 
-    # TorchScript the model
+    # TorchScript the inner model
     for parameter in exported_model.parameters():
         parameter.requires_grad = False
     exported_model = exported_model.eval()
     exported_model = torch.jit.script(exported_model)
-    return exported_model
+
+    return AtomisticModel(
+        module=exported_model,
+        metadata=exported_model.metadata(),
+        capabilities=exported_model.capabilities(),
+    )
 
 
 def save_upet(
@@ -286,8 +297,8 @@ def save_upet(
     model: Optional[str] = None,
     size: Optional[str] = None,
     version: Optional[str] = "latest",
-    checkpoint_path: Optional[str] = None,
-    output: Optional[str] = None,
+    checkpoint_path: Optional[Union[str, Path]] = None,
+    output: Optional[Union[str, Path]] = None,
 ):
     """
     Save the UPET model to a TorchScript file. These files can be used with
@@ -306,7 +317,7 @@ def save_upet(
 
     if output is None:
         if checkpoint_path is not None:
-            model, size, version = parse_checkpoint_filename(checkpoint_path)
+            model, size, version = parse_checkpoint_filename(str(checkpoint_path))
             if model and size and version:
                 output = f"{model}-{size}-v{version}.pt"
             else:

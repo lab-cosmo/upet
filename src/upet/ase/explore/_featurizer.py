@@ -109,6 +109,7 @@ class PETMADFeaturizer:
             version="1.1.0",
             checkpoint_path=pet_checkpoint_path,
         )
+        petmad = torch.jit.script(petmad)
 
         explorer = MADExplorer(petmad.module, device=device)
         explorer.load_checkpoint(petmad_explorer_path)
