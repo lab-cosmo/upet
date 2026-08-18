@@ -173,7 +173,13 @@ Uncertainty quantification
 
 A subset of the checkpoints expose per-structure energy uncertainty
 estimates through :py:meth:`~upet.calculator.UPETCalculator.get_energy_uncertainty`
-and :py:meth:`~upet.calculator.UPETCalculator.get_energy_ensemble`
+and :py:meth:`~upet.calculator.UPETCalculator.get_energy_ensemble`, and the
+corresponding force and stress quantities through
+:py:meth:`~upet.calculator.UPETCalculator.get_forces_uncertainty`,
+:py:meth:`~upet.calculator.UPETCalculator.get_forces_ensemble`,
+:py:meth:`~upet.calculator.UPETCalculator.get_stress_uncertainty`,
+:py:meth:`~upet.calculator.UPETCalculator.get_stress_ensemble` and
+:py:meth:`~upet.calculator.UPETCalculator.get_forces_and_stress_ensemble`
 (LLPR + shallow-ensemble heads, see :ref:`ase-uncertainty` for usage):
 
 - ``pet-mad-s`` v1.0.2
@@ -193,7 +199,9 @@ All UPET checkpoints support conservative forces (the derivative of the
 predicted energy). Most also expose a direct, non-conservative force head
 that is 2–3× faster at inference; see :ref:`ase-non-conservative`. The
 following checkpoints are conservative-only and therefore do **not**
-support ``non_conservative=True``:
+support ``non_conservative=True``
+(:py:attr:`~upet.calculator.UPETCalculator.supports_non_conservative` tells
+them apart):
 
 - ``pet-mad-s`` v1.0.2
 - ``pet-spice-s`` v0.2.0
