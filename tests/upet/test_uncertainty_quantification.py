@@ -6,7 +6,7 @@ from ase.build import bulk
 
 from upet._models import get_versions_for_model
 from upet._version import UPET_AVAILABLE_MODELS
-from upet.calculator import UPETCalculator
+from upet.ase import UPETCalculator
 
 
 @pytest.mark.parametrize("model_name", UPET_AVAILABLE_MODELS)
