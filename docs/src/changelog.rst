@@ -21,6 +21,11 @@ Unreleased changes
   from the checkpoint when it provides it.
 - Updated to ``metatrain`` v2026.4 and fixed uncertainty estimation under
   rotational averaging.
+- Relaxed the ``nvalchemi-toolkit-ops`` and ``warp-lang`` version pins, and
+  switched to deriving the package version from git tags with
+  ``setuptools-scm``.
+- Fixed the Gaussian filter used by the PET-MAD DOS calculator, which was
+  applied incorrectly to batched inputs, and added a test covering it.
 
 0.2.5
 -----
