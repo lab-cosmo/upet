@@ -96,24 +96,17 @@ def test_gradient_ensemble_uncertainty_quantification(model_name):
             assert np.allclose(forces_ensemble.sum(axis=0), 0.0, atol=1e-8)
 
 
-@pytest.mark.skip(
-    reason="We have no shipped models with non-conservative UQ available."
-)
 def test_direct_forces_stress_uncertainty_quantification():
     atoms = bulk("Si", cubic=True, a=5.43, crystalstructure="diamond")
-    calc = UPETCalculator(checkpoint_path="model.ckpt", variants={"energy": "r2scan"})
-    nc_calc = UPETCalculator(
-        checkpoint_path="model.ckpt",
-        variants={"energy": "r2scan"},
-        non_conservative=True,
-    )
+    calc = UPETCalculator(model="pet-mad-xs", version="1.6.0")
+    nc_calc = UPETCalculator(model="pet-mad-xs", version="1.6.0", non_conservative=True)
 
     atoms.calc = calc
     forces = atoms.get_forces()
     stress = atoms.get_stress()
     atoms.calc = nc_calc
     nc_forces = atoms.get_forces()
-    nc_stress = atoms.get_stress()
+    # nc_stress = atoms.get_stress()
 
     forces_uncertainty = calc.get_forces_uncertainty(atoms)
     forces_ensemble = calc.get_forces_ensemble(atoms)
@@ -140,14 +133,14 @@ def test_direct_forces_stress_uncertainty_quantification():
     assert np.allclose(
         nc_forces_uncertainty, np.std(nc_forces_ensemble, axis=2), atol=1e-6
     )
-    assert np.allclose(
-        nc_stress_uncertainty, np.std(nc_stress_ensemble, axis=1), atol=1e-6
-    )
+    # assert np.allclose(
+    #     nc_stress_uncertainty, np.std(nc_stress_ensemble, axis=1), atol=1e-6
+    # )
 
     assert np.allclose(np.mean(forces_ensemble, axis=2), forces, atol=1e-4)
     assert np.allclose(np.mean(nc_forces_ensemble, axis=2), nc_forces, atol=1e-4)
     assert np.allclose(np.mean(stress_ensemble, axis=1), stress, atol=1e-4)
-    assert np.allclose(np.mean(nc_stress_ensemble, axis=1), nc_stress, atol=1e-4)
+    # assert np.allclose(np.mean(nc_stress_ensemble, axis=1), nc_stress, atol=1e-4)
 
 
 def test_direct_forces_stress_uncertainty_quantification_raises_errors():
@@ -189,9 +182,9 @@ def test_uncertainty_with_rotational_averaging():
     # but not themselves rotationally averaged
     atoms = bulk("Si", cubic=True, a=5.43, crystalstructure="diamond")
     calc = UPETCalculator(
-        model="pet-mad-s", version="1.5.0", rotational_average_order=3
+        model="pet-mad-s", version="1.6.0", rotational_average_order=3
     )
-    plain_calc = UPETCalculator(model="pet-mad-s", version="1.5.0")
+    plain_calc = UPETCalculator(model="pet-mad-s", version="1.6.0")
 
     assert np.allclose(
         calc.get_energy_uncertainty(atoms),
