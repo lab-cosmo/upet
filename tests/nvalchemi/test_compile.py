@@ -12,8 +12,6 @@ points inductor at the copy torch already has open.
 
 from __future__ import annotations
 
-import os
-
 import pytest
 import torch
 
@@ -28,15 +26,15 @@ from upet.nvalchemi import UPETWrapper  # noqa: E402
 
 
 _CHECKPOINT_MODEL = "pet-mad-xs"
-_CHECKPOINT_VERSION = "1.5.0"  # 'grid' adaptive cutoff
-_SOLVER_CHECKPOINT_PATH = "pet-mad-xs-v1.6.0.ckpt"  # 'solver' adaptive cutoff
+_GRID_CHECKPOINT_VERSION = "1.5.0"  # 'grid' adaptive cutoff
+_SOLVER_CHECKPOINT_VERSION = "1.6.0"  # 'grid' adaptive cutoff
 
 
 def test_adaptive_cutoff_grid_compilation_raises_error():
     """Tests if compiling a 'grid' adaptive-cutoff model is rejected up front."""
     model_name, size = _CHECKPOINT_MODEL.rsplit("-", 1)
     _, _, checkpoint_path = _resolve_and_download_checkpoint(
-        model_name, size, _CHECKPOINT_VERSION
+        model_name, size, _GRID_CHECKPOINT_VERSION
     )
     with pytest.raises(
         ValueError, match="is not supported for PET models using the 'grid'"
@@ -50,25 +48,50 @@ def test_adaptive_cutoff_grid_compilation_raises_error():
 @pytest.mark.parametrize("fullgraph", [True, False])
 def test_adaptive_cutoff_solver_compilation_works(fullgraph):
     """Compiling a 'solver' adaptive-cutoff model works."""
-    if not os.path.exists(_SOLVER_CHECKPOINT_PATH):
-        pytest.skip(f"Checkpoint {_SOLVER_CHECKPOINT_PATH} not found.")
+    model_name, size = _CHECKPOINT_MODEL.rsplit("-", 1)
+    _, _, checkpoint_path = _resolve_and_download_checkpoint(
+        model_name, size, _SOLVER_CHECKPOINT_VERSION
+    )
     UPETWrapper.from_checkpoint(
-        checkpoint_path=_SOLVER_CHECKPOINT_PATH,
+        checkpoint_path=checkpoint_path,
         compile_model=True,
         fullgraph=fullgraph,
     )
 
 
 @pytest.mark.parametrize("fullgraph", [True, False])
+def test_compiled_inference_works(fullgraph):
+    """Compiling a 'solver' adaptive-cutoff model works."""
+    model_name, size = _CHECKPOINT_MODEL.rsplit("-", 1)
+    _, _, checkpoint_path = _resolve_and_download_checkpoint(
+        model_name, size, _SOLVER_CHECKPOINT_VERSION
+    )
+    wrapper = UPETWrapper.from_checkpoint(
+        checkpoint_path=checkpoint_path,
+        compile_model=True,
+        fullgraph=fullgraph,
+    )
+
+    wrapper.model_config.active_outputs = {"energy", "forces", "stress"}
+    water = make_pbc_water()
+    result = wrapper.forward(water)
+    assert torch.isfinite(result["energy"]).all()
+    assert torch.isfinite(result["forces"]).all()
+    assert torch.isfinite(result["stress"]).all()
+
+
+@pytest.mark.parametrize("fullgraph", [True, False])
 def test_compiled_inference_matches_eager(fullgraph):
-    if not os.path.exists(_SOLVER_CHECKPOINT_PATH):
-        pytest.skip(f"Checkpoint {_SOLVER_CHECKPOINT_PATH} not found.")
+    model_name, size = _CHECKPOINT_MODEL.rsplit("-", 1)
+    _, _, checkpoint_path = _resolve_and_download_checkpoint(
+        model_name, size, _SOLVER_CHECKPOINT_VERSION
+    )
     eager = UPETWrapper.from_checkpoint(
-        checkpoint_path=_SOLVER_CHECKPOINT_PATH,
+        checkpoint_path=checkpoint_path,
         compile_model=False,
     )
     compiled = UPETWrapper.from_checkpoint(
-        checkpoint_path=_SOLVER_CHECKPOINT_PATH,
+        checkpoint_path=checkpoint_path,
         compile_model=True,
         fullgraph=fullgraph,
     )

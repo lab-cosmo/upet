@@ -25,7 +25,7 @@ atoms = bulk("Si", cubic=True, a=5.43, crystalstructure="diamond")
 
 atoms.rattle(0.05, seed=0)  # ASE's built-in random displacement method
 
-calculator = UPETCalculator(model="pet-mad-xs", version="1.5.0", device="cpu")
+calculator = UPETCalculator(model="pet-mad-xs", version="1.6.0", device="cpu")
 atoms.calc = calculator
 
 energy = atoms.get_potential_energy()

@@ -14,7 +14,7 @@ from ase.build import bulk
 
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-calculator = UPETCalculator(model="pet-mad-s", version="1.0.2", device=device)
+calculator = UPETCalculator(model="pet-mad-s", version="1.6.0", device=device)
 
 atoms = bulk("Si", cubic=True, a=5.43, crystalstructure="diamond")
 dataset = [atoms] * 100

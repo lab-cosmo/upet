@@ -28,7 +28,7 @@ atoms = bulk("Si", cubic=True, a=5.43, crystalstructure="diamond")
 atoms.rattle(0.1, seed=0)  # ASE's built-in random displacement method
 atoms.set_cell(atoms.cell * 1.05, scale_atoms=True)
 
-calculator = UPETCalculator(model="pet-mad-xs", version="1.5.0", device="cpu")
+calculator = UPETCalculator(model="pet-mad-xs", version="1.6.0", device="cpu")
 atoms.calc = calculator
 
 history = {"stage": [], "energy": [], "fmax": []}  # type: ignore

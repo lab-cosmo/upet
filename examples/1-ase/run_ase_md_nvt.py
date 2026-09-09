@@ -21,7 +21,7 @@ from upet.ase import UPETCalculator
 T_TARGET = 300.0  # K
 
 atoms = bulk("Si", cubic=True, a=5.43, crystalstructure="diamond")
-atoms.calc = UPETCalculator(model="pet-mad-xs", version="1.5.0", device="cpu")
+atoms.calc = UPETCalculator(model="pet-mad-xs", version="1.6.0", device="cpu")
 
 MaxwellBoltzmannDistribution(
     atoms, temperature_K=T_TARGET, rng=np.random.default_rng(0)

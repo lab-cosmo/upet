@@ -14,10 +14,15 @@ The following pre-trained UPET models are available:
      - Available sizes
      - To be used for
      - Training set
+   * - PET-MAD-1.6
+     - r2SCAN
+     - XS, S, M
+     - materials, surfaces & molecules (102 elements)
+     - OMat → MAD-1.6
    * - PET-MAD-1.5
      - r2SCAN
-     - XS, S
-     - materials & molecules (102 elements)
+     - XS, S, M
+     - materials, surfaces & molecules (102 elements)
      - OMat → MAD-1.5
    * - PET-OAM
      - PBE (Materials Project)
@@ -52,7 +57,7 @@ The following pre-trained UPET models are available:
 
 Recommended usage:
 
-- **PET-MAD v1.5.0** for molecular dynamics simulations of materials,
+- **PET-MAD v1.6.0** for molecular dynamics simulations of materials,
   surfaces, interfaces, solutions, metal complexes and other challenging
   systems.
 - **PET-OAM** for materials discovery tasks (convex hull energies,
@@ -64,6 +69,41 @@ Recommended usage:
 - **PET-MOLS** for organic molecular crystals, in particular NMR
   crystallography.
 
+What's new in PET-MAD-1.6
+-------------------------
+
+PET-MAD-1.6 is trained on the MAD-1.6 dataset, which extends MAD-1.5 with
+catalytic surfaces. Compared to PET-MAD-1.5, it therefore has better
+accuracy for surface reactions and adsorption energies, while keeping the
+same coverage of 102 elements at the r2SCAN level of theory. In addition:
+
+- A new **M** size (``pet-mad-m``) complements the existing XS and S
+  models, trading a higher evaluation cost for better accuracy (see
+  `Model sizes`_ below).
+- Compared to v1.5, all models have increased number of neighbors in the
+  adaptive-cutoff graph construction, which substantially increases the
+  accuracy  in certain cases, especially for the XS size. 
+- All three sizes ship LLPR uncertainty and shallow-ensemble heads, so
+  energy, force and stress uncertainties are available out of the box
+  (see :ref:`ase-uncertainty`).
+- The models use the ``'solver'`` adaptive-cutoff method instead of the
+  ``'grid'`` method of PET-MAD-1.5, which makes them compatible with
+  ``torch.compile`` and hence with the compiled
+  :py:class:`~upet.nvalchemi.UPETWrapper` backend (see
+  :ref:`usage_nvalchemi`).
+
+See the `preprint <https://arxiv.org/abs/2603.02089>`_ for the dataset and
+benchmark details.
+
+The PET-MAD-1.5 models (XS and S) remain available and can still be
+requested explicitly:
+
+.. code-block:: python
+
+   from upet.ase import UPETCalculator
+
+   calculator = UPETCalculator(model="pet-mad-s", version="1.5.0", device="cpu")
+
 Model sizes
 -----------
 
@@ -73,6 +113,10 @@ architecture hyperparameters, introduced as the PET-OMat Pareto front in
 Appendix A). The same naming convention is reused for the other UPET
 families (PET-MAD, PET-OMAD, PET-OMATPES, PET-SPICE), so that e.g.
 PET-MAD-S and PET-OMat-S share the same architectural budget.
+Please note, that for PET-MAD-1.6 XS, S, and M sizes the number of neighbors
+in the adaptive-cutoff graph construction is increased compared to previous
+models, the old values are therefore reported in parentheses in the table below.
+
 
 .. list-table::
    :header-rows: 1
@@ -90,6 +134,12 @@ PET-MAD-S and PET-OMat-S share the same architectural budget.
      - 109 M
      - 255 M
      - 730 M
+   * - Node feature dimension
+     - 512
+     - 1024
+     - 1536
+     - 2048
+     - 2560
    * - Edge feature dimension
      - 128
      - 256
@@ -115,9 +165,9 @@ PET-MAD-S and PET-OMat-S share the same architectural budget.
      - 9.0
      - 10.0
    * - Adaptive neighbor number
-     - 8
-     - 16
-     - 24
+     - 16 (8)
+     - 24 (16)
+     - 32 (24)
      - 32
      - 40
 
@@ -171,22 +221,22 @@ details on the models being compared).
 Uncertainty quantification
 --------------------------
 
-A subset of PET-MAD checkpoints expose per-structure energy uncertainty
-estimates through :py:meth:`~upet.ase.UPETCalculator.get_energy_uncertainty`
-and :py:meth:`~upet.ase.UPETCalculator.get_energy_ensemble`
-A subset of the checkpoints expose per-structure energy uncertainty
+The following checkpoints expose per-structure energy uncertainty
 estimates through :py:meth:`~upet.ase.UPETCalculator.get_energy_uncertainty`
 and :py:meth:`~upet.ase.UPETCalculator.get_energy_ensemble`, and the
 corresponding force and stress quantities through
 :py:meth:`~upet.ase.UPETCalculator.get_forces_uncertainty`,
 :py:meth:`~upet.ase.UPETCalculator.get_forces_ensemble`,
-:py:meth:`~upet.ase.UPETCalculator.get_stress_uncertainty`,
-:py:meth:`~upet.ase.UPETCalculator.get_stress_ensemble` and
+:py:meth:`~upet.ase.UPETCalculator.get_stress_uncertainty` and
+:py:meth:`~upet.ase.UPETCalculator.get_stress_ensemble`
 (LLPR + shallow-ensemble heads, see :ref:`ase-uncertainty` for usage):
 
-- ``pet-mad-s`` v1.0.2
+- ``pet-mad-xs`` v1.6.0
+- ``pet-mad-s`` v1.6.0
+- ``pet-mad-m`` v1.6.0
 - ``pet-mad-xs`` v1.5.0
 - ``pet-mad-s`` v1.5.0
+- ``pet-mad-s`` v1.0.2
 - ``pet-mols-s`` v1.0.0
 - ``pet-mols-s`` v1.1.0
 
@@ -199,7 +249,7 @@ Non-conservative forces
 
 All UPET checkpoints support conservative forces (the derivative of the
 predicted energy). Most also expose a direct, non-conservative force head
-that is 2–3× faster at inference; see :ref:`ase-non-conservative`. The
+that is 2–3x faster at inference; see :ref:`ase-non-conservative`. The
 following checkpoints are conservative-only and therefore do **not**
 support ``non_conservative=True``:
 

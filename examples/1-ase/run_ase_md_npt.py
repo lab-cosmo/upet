@@ -25,7 +25,7 @@ bar = 1e-4 * units.GPa  # ASE uses eV/Å³ for stress
 p_target = P_TARGET_BAR * bar
 
 atoms = bulk("Si", cubic=True, a=5.43, crystalstructure="diamond")
-atoms.calc = UPETCalculator(model="pet-mad-xs", version="1.5.0", device="cpu")
+atoms.calc = UPETCalculator(model="pet-mad-xs", version="1.6.0", device="cpu")
 
 MaxwellBoltzmannDistribution(
     atoms, temperature_K=T_TARGET, rng=np.random.default_rng(0)
