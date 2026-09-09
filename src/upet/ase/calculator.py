@@ -208,6 +208,7 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
                 else (non_conservative,)
             )
             for nc_quantity in requested_nc_quantities:
+                nc_quantity = "force" if nc_quantity == "forces" else nc_quantity
                 nc_quantity_key = quantity_keys[f"non_conservative_{nc_quantity}"][
                     "quantity"
                 ]
