@@ -6,31 +6,30 @@
 </div>
 
 > [!NOTE]
-> The PET-MAD-1.5 models trained for 102 elements at the r2SCAN level of theory are
-> now available! These models are more robust, more accurate and faster than the
-> previous PET-MAD models. We highly recommend using these models for all applications,
-> especially molecular dynamics simulations. Try them out and let us know what you think!
+> The PET-MAD-1.6 models trained for 102 elements at the r2SCAN level of theory are
+> now available! On top of the MAD-1.5 training data, they were additionally trained 
+> on catalytic surfaces, and therefore have better accuracy for surface reactions 
+> and adsorption energies. They also come in a new **M** size. Check out the
+> [documentation](https://lab-cosmo.github.io/upet/latest/models.html)
+> and updated [preprint](https://arxiv.org/abs/2603.02089) for more details.
+> Try them out and let us know what you think!
 ```py
 from upet.ase import UPETCalculator
-calculator = UPETCalculator(model="pet-mad-s", version="1.5.0", device="cuda")
+calculator = UPETCalculator(model="pet-mad-s", version="1.6.0", device="cuda")
 ```
 
 > [!NOTE]
-> Are you here to try our **Matbench model? Here's all you need.**
-> This model is excellent for convex hull energies, geometry optimization and phonons,
-> but we highly recommend the lighter and more universal PET-MAD for molecular dynamics!
+> A new experimental integration of UPET with the
+> [NVIDIA ALCHEMI Toolkit](https://developer.nvidia.com/alchemi) is now available!
+> It allows for GPU-native batched inference, relaxations, and MD simulations with
+> a torch-compiled version of UPET. Check out the
+> [documentation](https://lab-cosmo.github.io/upet/latest/usage/nvalchemi.html)
+> and try it yourself!
 ```py
-from upet.ase import UPETCalculator
-calculator = UPETCalculator(model="pet-oam-xl", version="1.0.0", device="cuda")
+from upet.nvalchemi import UPETWrapper
+model = UPETWrapper.from_checkpoint(model="pet-mad-s", version="1.6.0", device="cuda")
 ```
 
-> [!WARNING]
-> This repository is a successor of the PET-MAD repository, which is now deprecated.
-> The package has been renamed to **UPET** to reflect the broader scope of the models
-> and functionalities provided, that go beyond the original PET-MAD model.
-> Please use version `1.4.4` of PET-MAD package if you want to use the old API.
-> The [migration guide](docs/UPET_MIGRATION_GUIDE.md) and the
-> [older version of the README](docs/README_OLD.md) are available in the repository.
 
 # UPET: Universal Models for Advanced Atomistic Simulations
 
@@ -70,7 +69,7 @@ from upet.ase import UPETCalculator
 from ase.build import bulk
 
 atoms = bulk("Si", cubic=True, a=5.43, crystalstructure="diamond")
-calculator = UPETCalculator(model="pet-mad-s", version="1.5.0", device="cpu")
+calculator = UPETCalculator(model="pet-mad-s", version="1.6.0", device="cpu")
 atoms.calc = calculator
 
 energy = atoms.get_potential_energy()
@@ -80,18 +79,18 @@ forces = atoms.get_forces()
 For DOS calculations, you can use the `PETMADDOSCalculator`:
 
 ```python
-  from upet.ase.dos import PETMADDOSCalculator
-  from ase.build import bulk
+from upet.ase.dos import PETMADDOSCalculator
+from ase.build import bulk
 
-  atoms = bulk("Si", cubic=True, a=5.43, crystalstructure="diamond")
-  calculator = PETMADDOSCalculator(version="latest", device="cpu")
-  results = pet_mad_dos_calculator.calculate(atoms)
+atoms = bulk("Si", cubic=True, a=5.43, crystalstructure="diamond")
+calculator = PETMADDOSCalculator(version="latest", device="cpu")
+results = calculator.calculate(atoms)
 ```
-where ``results`` is a dictionary and the keys include ``dos_raw``, ``dos_denoised``, 
-``fermi_level``and ``bandgap``. Each key corresponds to its output quantitiy, eg. 
-``dos_denoised`` is the denoised DOS obtained by applying a denoising algorithm on the 
-raw predicted DOS. The DOS has units of states/eV and is projected on an energy grid 
-with intervals of 0.05 eV. The bandgap and Fermi level has units of eV.
+where `results` is a dictionary whose keys include `dos_raw`, `dos_denoised`,
+`fermi_level` and `bandgap`. Each key corresponds to its output quantity, e.g.
+`dos_denoised` is the denoised DOS obtained by applying a denoising algorithm to the
+raw predicted DOS. The DOS has units of states/eV and is projected on an energy grid
+with intervals of 0.05 eV. The bandgap and Fermi level have units of eV.
 
 
 The first call downloads the checkpoint from the
@@ -112,8 +111,10 @@ list_upet()
 ## Pre-trained models
 
 UPET ships several pre-trained model families (PET-MAD, PET-OAM, PET-OMat,
-PET-OMATPES, PET-SPICE) at multiple sizes. The full table with supported
-elements, training sets, and recommended use cases is in the
+PET-OMATPES, PET-SPICE) at multiple sizes. PET-MAD-1.6 (XS, S, M) is the
+recommended choice for molecular dynamics, while PET-OAM is the one for
+materials discovery. The full table with supported elements, training sets,
+and recommended use cases is in the
 [models documentation](https://lab-cosmo.github.io/upet/latest/models.html).
 All checkpoints are available on the
 [HuggingFace repository](https://huggingface.co/lab-cosmo/upet).
@@ -136,7 +137,6 @@ The documentation covers the complete feature surface:
 - [Fine-tuning](https://lab-cosmo.github.io/upet/latest/fine-tuning.html) and
   [example gallery](https://lab-cosmo.github.io/upet/latest/generated_examples/index.html).
 - [FAQ and known issues](https://lab-cosmo.github.io/upet/latest/faq.html).
-- [FAQ and known issues](https://lab-cosmo.github.io/upet/latest/faq.html).
 
 More worked examples for **ASE, i-PI, and LAMMPS** are also available in the
 [Atomistic Cookbook](https://atomistic-cookbook.org/examples/pet-mad/pet-mad.html).
@@ -147,9 +147,9 @@ If you found our models useful, please cite the corresponding articles. The
 full list with copy-pasteable BibTeX is also available in the
 [documentation](https://lab-cosmo.github.io/upet/latest/cite.html).
 
-PET-MAD-1.5:
+PET-MAD-1.6 or PET-MAD-1.5:
 ```bibtex
-@misc{PET-MAD-1.5-2026,
+@misc{PET-MAD-1.6-2026,
       title={High-quality, high-information datasets for universal atomistic machine learning},
       author={Cesare Malosso and Filippo Bigi and Paolo Pegolo and Joseph W. Abbott and Philip Loche and Mariana Rossi and Michele Ceriotti and Arslan Mazitov},
       year={2026},
@@ -214,4 +214,4 @@ For a general citation for the PET architecture, you can use
 
 ## Maintainers
 
-This project is [maintained](https://github.com/lab-cosmo/.github/blob/main/Maintainers.md) by [@abmazitov](https://github.com/abmazitov) and [@frostedoyster](https://github.com/frostedoyster), who will reply to issues and pull requests opened on this repository as soon as possible. You can mention them directly if you have not received an answer after a couple of days.
+This project is [maintained](https://github.com/lab-cosmo/.github/blob/main/Maintainers.md) by [@abmazitov](https://github.com/abmazitov), who will reply to issues and pull requests opened on this repository as soon as possible. You can mention him directly if you have not received an answer after a couple of days.

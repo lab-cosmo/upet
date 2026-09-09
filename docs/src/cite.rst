@@ -5,12 +5,12 @@ How to cite
 
 If you find our models useful, please cite the corresponding articles.
 
-PET-MAD-1.5
------------
+PET-MAD-1.6 and PET-MAD-1.5
+---------------------------
 
 .. code-block:: bibtex
 
-   @misc{PET-MAD-1.5-2026,
+   @misc{PET-MAD-1.6-2026,
          title={High-quality, high-information datasets for universal atomistic machine learning},
          author={Cesare Malosso and Filippo Bigi and Paolo Pegolo and Joseph W. Abbott and Philip Loche and Mariana Rossi and Michele Ceriotti and Arslan Mazitov},
          year={2026},

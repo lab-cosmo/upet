@@ -54,15 +54,19 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
         *,
         device: Optional[str] = None,
         non_conservative: Union[bool, Literal["forces", "stress"]] = False,
+        uncertainty_threshold: Optional[float] = 0.1,
         check_consistency: bool = False,
     ):
         """
         :param model: PET-MLIP model to use. Required when not using checkpoint_path.
             Can be one of the following:
 
-            - "pet-mad-xs": PET-MAD-1.5 model (size "xs", materials and molecules,
-              r2SCAN)
-            - "pet-mad-s": PET-MAD-1.5 model (size "s", materials and molecules, r2SCAN)
+            - "pet-mad-xs": PET-MAD model (size "xs", materials, surfaces and
+              molecules, r2SCAN; versions 1.6.0 and 1.5.0)
+            - "pet-mad-s": PET-MAD model (size "s", materials, surfaces and
+              molecules, r2SCAN; versions 1.6.0 and 1.5.0)
+            - "pet-mad-m": PET-MAD model (size "m", materials, surfaces and
+              molecules, r2SCAN; version 1.6.0)
             - "pet-omat-xs": PET-OMat model (size "xs", materials, PBE)
             - "pet-omat-s": PET-OMat model (size "s", materials, PBE)
             - "pet-omat-m": PET-OMat model (size "m", materials, PBE)
@@ -81,7 +85,9 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
             - "pet-mols-s": PET-MOLS model (size "s", organic molecular crystals,
               PBE0+MBD)
         :param version: version of the model to use. Defaults to the latest stable
-            version. Deprecated model versions:
+            version, which is 1.6.0 for the PET-MAD models.
+
+            Deprecated model versions:
 
             - "pet-mad-s-v1.0.2": PET-MAD-1 model (size "s", materials and molecules,
               PBEsol)
@@ -125,7 +131,12 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
             - PET-MAD models with version < 1.1.0
             - PET-SPICE models
             - PET-MOLS models
-
+        :param uncertainty_threshold: threshold for the atomic energy uncertainty in
+            eV. The calculator warns whenever the predicted atomic energy uncertainty
+            exceeds this value, which is a useful signal that the structure is far
+            from the training distribution. Only used for models that support atomic
+            uncertainty estimation (see :ref:`models`). Defaults to 0.1 eV; set it to
+            ``None`` to disable the check.
         :param check_consistency: whether internal consistency checks should be
             performed. Mainly for developers, defaults to False.
         """
@@ -220,6 +231,7 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
             device=device,
             variants=variants,
             non_conservative=non_conservative,
+            uncertainty_threshold=uncertainty_threshold,
         )
         self.implemented_properties = self.calculator.implemented_properties
 

@@ -34,7 +34,7 @@ is formed by combining the model family and the size, e.g. ``pet-mad-s``,
    from ase.build import bulk
 
    atoms = bulk("Si", cubic=True, a=5.43, crystalstructure="diamond")
-   calculator = UPETCalculator(model="pet-mad-s", version="1.5.0", device="cpu")
+   calculator = UPETCalculator(model="pet-mad-s", version="1.6.0", device="cpu")
    atoms.calc = calculator
 
    energy = atoms.get_potential_energy()
@@ -77,7 +77,7 @@ You can download a checkpoint from the `HuggingFace repository
 
 .. code-block:: bash
 
-   wget https://huggingface.co/lab-cosmo/upet/resolve/main/models/pet-mad-s-v1.5.0.ckpt
+   wget https://huggingface.co/lab-cosmo/upet/resolve/main/models/pet-mad-s-v1.6.0.ckpt
 
 and then load the calculator from that local file (useful for fine-tuned
 checkpoints or reproducibility):
@@ -86,7 +86,7 @@ checkpoints or reproducibility):
 
    from upet.ase import UPETCalculator
 
-   calculator = UPETCalculator(checkpoint_path="pet-mad-s-v1.5.0.ckpt", device="cpu")
+   calculator = UPETCalculator(checkpoint_path="pet-mad-s-v1.6.0.ckpt", device="cpu")
 
 
 .. _ase-non-conservative:
@@ -112,7 +112,7 @@ when constructing the calculator:
 
    atoms = bulk("Si", cubic=True, a=5.43, crystalstructure="diamond")
    calculator = UPETCalculator(
-       model="pet-mad-s", version="1.5.0", device="cpu", non_conservative=True
+       model="pet-mad-s", version="1.6.0", device="cpu", non_conservative=True
    )
    atoms.calc = calculator
 
@@ -156,7 +156,7 @@ Energy uncertainty and ensemble can be obtained using the corresponding
    from ase.build import bulk
 
    atoms = bulk("Si", cubic=True, a=5.43, crystalstructure="diamond")
-   calculator = UPETCalculator(model="pet-mad-s", version="1.5.0", device="cpu")
+   calculator = UPETCalculator(model="pet-mad-s", version="1.6.0", device="cpu")
    atoms.calc = calculator
 
    energy = atoms.get_potential_energy()
@@ -208,7 +208,7 @@ Pass a ``rotational_average_order`` to the calculator:
    atoms = bulk("Si", cubic=True, a=5.43, crystalstructure="diamond")
    calculator = UPETCalculator(
        model="pet-mad-s",
-       version="1.5.0",
+       version="1.6.0",
        device="cpu",
        rotational_average_order=3,
    )
@@ -231,7 +231,7 @@ by setting ``rotational_average_batch_size`` to a smaller value:
 
    calculator = UPETCalculator(
        model="pet-mad-s",
-       version="1.5.0",
+       version="1.6.0",
        device="cpu",
        rotational_average_order=3,
        rotational_average_batch_size=8,
@@ -269,7 +269,7 @@ Then combine both calculators with ``ase.calculators.mixing.SumCalculator``:
 
    device = "cuda" if torch.cuda.is_available() else "cpu"
 
-   calc_upet = UPETCalculator(model="pet-mad-s", version="1.5.0", device=device)
+   calc_upet = UPETCalculator(model="pet-mad-s", version="1.6.0", device=device)
    dft_d3 = TorchDFTD3Calculator(device=device, xc="r2scan", damping="bj")
 
    combined_calc = SumCalculator([calc_upet, dft_d3])

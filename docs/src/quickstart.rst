@@ -18,7 +18,7 @@ using the ASE-compatible :py:class:`~upet.ase.UPETCalculator`:
    from ase.build import bulk
 
    atoms = bulk("Si", cubic=True, a=5.43, crystalstructure="diamond")
-   calculator = UPETCalculator(model="pet-mad-s", version="1.5.0", device="cpu")
+   calculator = UPETCalculator(model="pet-mad-s", version="1.6.0", device="cpu")
    atoms.calc = calculator
 
    energy = atoms.get_potential_energy()
@@ -33,13 +33,13 @@ For DOS calculations, you can use the :py:class:`~upet.ase.dos.PETMADDOSCalculat
 
    atoms = bulk("Si", cubic=True, a=5.43, crystalstructure="diamond")
    calculator = PETMADDOSCalculator(version="latest", device="cpu")
-   results = pet_mad_dos_calculator.calculate(atoms)
+   results = calculator.calculate(atoms)
 
 where the keys in the ``results`` dictionary include ``dos_raw``, ``dos_denoised``,
-``fermi_level`` and ``bandgap``. Each key corresponds to its output quantitiy, eg.
-``dos_denoised`` is the denoised DOS obtained by applying a denoising algorithm on the
+``fermi_level`` and ``bandgap``. Each key corresponds to its output quantity, e.g.
+``dos_denoised`` is the denoised DOS obtained by applying a denoising algorithm to the
 raw predicted DOS. The DOS has units of states/eV and is projected on an energy grid
-with intervals of 0.05 eV. The bandgap and Fermi level has units of eV.
+with intervals of 0.05 eV. The bandgap and Fermi level have units of eV.
 
 In both examples, the first call downloads the model checkpoint from the `HuggingFace
 repository <https://huggingface.co/lab-cosmo/upet>`_ and caches it locally,
@@ -51,7 +51,7 @@ Next steps
 - See :ref:`installation` for the full list of installation methods (PyPI,
   GitHub, ``uv``, pinning a specific version).
 - See :ref:`usage` for the complete feature surface: ASE workflows,
-  batched evaluation with ``metatrain``, LAMMPS, i-PI, TorchSim, and
-  GROMACS.
+  batched evaluation with ``metatrain``, LAMMPS, NVIDIA ALCHEMI Toolkit, i-PI,
+  TorchSim, and GROMACS.
 - See :ref:`models` for the list of available pre-trained models and
   their recommended use cases.

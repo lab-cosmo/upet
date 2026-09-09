@@ -3,6 +3,29 @@ Changelog
 
 Unreleased changes
 ------------------
+- Added the PET-MAD v1.6.0 models (sizes XS, S and M), trained on the
+  MAD-1.6 dataset, which extends MAD-1.5 with catalytic surfaces. These
+  are now the recommended PET-MAD models, and the ones resolved by
+  ``version="latest"``.
+- Added ``pet-mad-m`` to the list of available models.
+- Added the :py:class:`~upet.nvalchemi.UPETWrapper` interface to the
+  NVIDIA ALCHEMI Toolkit, for GPU-native batched inference, relaxations
+  and MD. ``torch.compile`` support requires a ``'solver'``
+  adaptive-cutoff checkpoint, i.e. PET-MAD v1.6.0 or newer.
+- Added force and stress uncertainties and ensembles to
+  :py:class:`~upet.ase.UPETCalculator`.
+- Added an ``uncertainty_threshold`` option to
+  :py:class:`~upet.ase.UPETCalculator`, which warns when the predicted
+  atomic energy uncertainty exceeds the given value.
+- Model metadata (name, description, authors, references) is now read
+  from the checkpoint when it provides it.
+- Updated to ``metatrain`` v2026.4 and fixed uncertainty estimation under
+  rotational averaging.
+- Relaxed the ``nvalchemi-toolkit-ops`` and ``warp-lang`` version pins, and
+  switched to deriving the package version from git tags with
+  ``setuptools-scm``.
+- Fixed the Gaussian filter used by the PET-MAD DOS calculator, which was
+  applied incorrectly to batched inputs, and added a test covering it.
 
 0.2.5
 -----

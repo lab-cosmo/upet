@@ -15,7 +15,7 @@ Fetch and convert a UPET checkpoint from the HuggingFace repository:
 
 .. code-block:: bash
 
-   mtt export https://huggingface.co/lab-cosmo/upet/resolve/main/models/pet-mad-s-v1.5.0.ckpt -o model.pt
+   mtt export https://huggingface.co/lab-cosmo/upet/resolve/main/models/pet-mad-s-v1.6.0.ckpt -o model.pt
 
 Alternatively, fetch and save the model with the UPET Python API:
 
@@ -27,7 +27,7 @@ Alternatively, fetch and save the model with the UPET Python API:
    upet.save_upet(
        model="pet-mad",
        size="s",
-       version="1.5.0",
+       version="1.6.0",
        output="model.pt",
    )
 

@@ -42,9 +42,7 @@ def _fetch_checkpoint_path(model: str, version: str) -> str:
 
 # Fetched from the `lab-cosmo/upet` HuggingFace repo (see UPETWrapper.from_checkpoint).
 _CHECKPOINT_MODEL = "pet-mad-xs"
-_CHECKPOINT_VERSION = "1.5.0"  # 'grid' adaptive cutoff
-# Not yet published on HuggingFace; must be provided locally to run this test.
-_SOLVER_CHECKPOINT_PATH = "pet-mad-xs-v1.6.0.ckpt"  # 'solver' adaptive cutoff
+_CHECKPOINT_VERSION = "1.6.0"  # 'grid' adaptive cutoff
 CHECKPOINT_CUTOFF = 7.5  # the cutoff pet-mad-xs was trained with
 
 

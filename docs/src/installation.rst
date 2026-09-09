@@ -18,7 +18,7 @@ To install a specific released version, pass it to ``pip``:
 
 .. code-block:: bash
 
-   pip install "upet==0.2.2"
+   pip install "upet==0.2.6"
 
 From GitHub
 -----------
@@ -49,8 +49,8 @@ If you use `uv <https://docs.astral.sh/uv/>`_, the equivalent commands are:
 Optional dependencies
 ----------------------
 
-nvalchemi-toolkit
-^^^^^^^^^^^^^^^^^^
+NVIDIA ALCHEMI Toolkit
+^^^^^^^^^^^^^^^^^^^^^^
 
 :py:class:`~upet.nvalchemi.UPETWrapper` wraps UPET / PET-MAD checkpoints for
 use with `nvalchemi-toolkit

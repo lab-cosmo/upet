@@ -31,13 +31,13 @@ programmatically via :func:`upet.list_upet`)::
     import torch
 
     model = UPETWrapper.from_checkpoint(
-        model="pet-mad-s", version="1.5.0", device=torch.device("cuda")
+        model="pet-mad-s", version="1.6.0", device=torch.device("cuda")
     )
 
-Or load a local checkpoint file directly (e.g. ``pet-mad-xs-v1.5.0.ckpt``)::
+Or load a local checkpoint file directly (e.g. ``pet-mad-xs-v1.6.0.ckpt``)::
 
     model = UPETWrapper.from_checkpoint(
-        checkpoint_path="pet-mad-xs-v1.5.0.ckpt", device=torch.device("cuda")
+        checkpoint_path="pet-mad-xs-v1.6.0.ckpt", device=torch.device("cuda")
     )
 
 Notes
@@ -641,7 +641,7 @@ class UPETWrapper(nn.Module, BaseModelMixin):
                 "with `version`)."
             )
 
-        raw = torch.load(str(checkpoint_path), weights_only=False, map_location=device)
+        raw = torch.load(str(checkpoint_path), weights_only=False, map_location="cpu")
 
         if isinstance(raw, dict) and "wrapped_model_checkpoint" in raw:
             raw = raw["wrapped_model_checkpoint"]

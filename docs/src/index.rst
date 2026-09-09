@@ -19,42 +19,31 @@ PET architecture and is trained on the MAD dataset.
 
 .. note::
 
-   The **PET-MAD-1.5** models, trained for 102 elements at the r2SCAN level
-   of theory, are now available. These models are more robust, more
-   accurate and faster than the previous PET-MAD models. We highly
-   recommend using them for all applications, especially molecular
-   dynamics simulations.
+   The **PET-MAD-1.6** models, trained for 102 elements at the r2SCAN level
+   of theory, are now available. On top of the MAD-1.5 training data, they
+   were additionally trained on catalytic surfaces, and therefore have
+   better accuracy for surface reactions and adsorption energies. They also
+   come in a new **M** size. See :ref:`models` and the updated
+   `preprint <https://arxiv.org/abs/2603.02089>`_ for more details.
 
    .. code-block:: python
 
       from upet.ase import UPETCalculator
-      calculator = UPETCalculator(model="pet-mad-s", version="1.5.0", device="cuda")
+      calculator = UPETCalculator(model="pet-mad-s", version="1.6.0", device="cuda")
 
 .. note::
 
-   Are you here to try our **Matbench model**? Here is all you need. Don't
-   be scared by the parameter count — our model is :ref:`much faster <model-speeds>` than you
-   might think. It is excellent for convex hull energies, geometry
-   optimization and phonons, but we highly recommend the lighter and more
-   universal PET-MAD for molecular dynamics.
+   A new experimental integration of UPET with the `NVIDIA ALCHEMI Toolkit
+   <https://developer.nvidia.com/alchemi>`_ is now available. It allows for
+   GPU-native batched inference, relaxations and MD simulations with a
+   ``torch.compile``\ d version of UPET. See :ref:`usage_nvalchemi`.
 
    .. code-block:: python
 
-      from upet.ase import UPETCalculator
-      calculator = UPETCalculator(model="pet-oam-xl", version="1.0.0", device="cuda")
-
-.. warning::
-
-   This repository is the successor of the PET-MAD repository, which is now
-   deprecated. The package has been renamed to **UPET** to reflect the
-   broader scope of the models and functionalities it provides, which now
-   go beyond the original PET-MAD model. Please use version ``1.4.4`` of
-   the ``pet-mad`` package if you need the old API. The `older version of
-   the README
-   <https://github.com/lab-cosmo/upet/blob/main/docs/README_OLD.md>`_ and
-   a `migration guide
-   <https://github.com/lab-cosmo/upet/blob/main/docs/UPET_MIGRATION_GUIDE.md>`_
-   are available in the repository.
+      from upet.nvalchemi import UPETWrapper
+      model = UPETWrapper.from_checkpoint(
+          model="pet-mad-s", version="1.6.0", device="cuda"
+      )
 
 
 Key features
@@ -79,9 +68,8 @@ Maintainers
 
 This project is `maintained
 <https://github.com/lab-cosmo/.github/blob/main/Maintainers.md>`_ by
-`@abmazitov <https://github.com/abmazitov>`_ and `@frostedoyster
-<https://github.com/frostedoyster>`_, who will reply to issues and pull
-requests opened on the repository as soon as possible. You can mention
+`@abmazitov <https://github.com/abmazitov>`_, who will reply to issues and
+pull requests opened on the repository as soon as possible. You can mention
 them directly if you have not received an answer after a couple of days.
 
 

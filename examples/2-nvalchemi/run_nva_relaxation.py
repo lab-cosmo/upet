@@ -30,7 +30,7 @@ from upet.nvalchemi import UPETWrapper
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = UPETWrapper.from_checkpoint(model="pet-mad-xs", version="1.5.0", device=device)
+model = UPETWrapper.from_checkpoint(model="pet-mad-xs", version="1.6.0", device=device)
 
 atoms = bulk("Si", cubic=True, a=5.43, crystalstructure="diamond")
 atoms.rattle(0.1, seed=0)

@@ -18,8 +18,9 @@ answer.
 
 **A:**
 
-- For molecular dynamics simulations, we recommend the **PET-MAD v1.5.0**
-  models.
+- For molecular dynamics simulations, we recommend the **PET-MAD v1.6.0**
+  models. They also cover catalytic surfaces, so prefer them over
+  PET-MAD v1.5.0 for surface reactions and adsorption energies.
 - For materials discovery tasks (convex hull energies, geometry
   optimization, phonons, etc.), we recommend the **PET-OAM** models.
 - For accurate and fast simulations of biomolecules, we recommend the
@@ -29,6 +30,24 @@ answer.
   for your needs.
 - In any case, start from the smaller models (XS or S) to benchmark your
   application, then scale up if you need more accuracy.
+
+
+**Q: I was using PET-MAD v1.5.0. Should I switch to v1.6.0?**
+
+**A:** Yes, in almost all cases. PET-MAD-1.6 is trained on the MAD-1.6
+dataset, which adds catalytic surfaces on top of MAD-1.5, and it covers the
+same 102 elements at the same r2SCAN level of theory. It also adds a new M
+size and is compatible with ``torch.compile`` (see :ref:`models`). The API
+is unchanged — just bump the ``version`` argument, or drop it entirely to
+always get the latest release:
+
+.. code-block:: python
+
+   calculator = UPETCalculator(model="pet-mad-s", device="cuda")
+
+Note that energies from v1.5.0 and v1.6.0 are not directly comparable, so
+do not mix them within a single study. The v1.5.0 checkpoints remain
+available for reproducing earlier results.
 
 
 **Q: The model is slow for my application. What should I do?**

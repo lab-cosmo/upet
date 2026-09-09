@@ -20,7 +20,7 @@ Fetch and convert a UPET checkpoint from the HuggingFace repository:
 
 .. code-block:: bash
 
-   mtt export https://huggingface.co/lab-cosmo/upet/resolve/main/models/pet-mad-s-v1.5.0.ckpt -o model.pt
+   mtt export https://huggingface.co/lab-cosmo/upet/resolve/main/models/pet-mad-s-v1.6.0.ckpt -o model.pt
 
 This downloads the model and converts it to a TorchScript file compatible
 with LAMMPS, using ``metatomic`` and ``metatrain`` under the hood. Other
@@ -59,7 +59,7 @@ Run LAMMPS:
 .. warning::
 
    The ``neigh_modify`` settings above are particularly important for
-   running PET-MAD v1.5 models, especially for dense systems with a large
+   running PET-MAD models, especially for dense systems with a large
    number of neighbors. This is due to the adaptive cutoff strategy, which
    requires a large initial buffer of neighbors before truncation. If your
    system is extremely dense, you may need to increase the ``one`` and
