@@ -82,7 +82,7 @@ same coverage of 102 elements at the r2SCAN level of theory. In addition:
   `Model sizes`_ below).
 - Compared to v1.5, all models have increased number of neighbors in the
   adaptive-cutoff graph construction, which substantially increases the
-  accuracy  in certain cases, especially for the XS size. 
+  accuracy  in certain cases, especially for the XS size.
 - All three sizes ship LLPR uncertainty and shallow-ensemble heads, so
   energy, force and stress uncertainties are available out of the box
   (see :ref:`ase-uncertainty`).

@@ -23,7 +23,7 @@ PET architecture and is trained on the MAD dataset.
    of theory, are now available. On top of the MAD-1.5 training data, they
    were additionally trained on catalytic surfaces, and therefore have
    better accuracy for surface reactions and adsorption energies. They also
-   come in a new **M** size. See :ref:`models` and the updated 
+   come in a new **M** size. See :ref:`models` and the updated
    `preprint <https://arxiv.org/abs/2603.02089>`_ for more details.
 
    .. code-block:: python

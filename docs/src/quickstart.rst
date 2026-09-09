@@ -51,7 +51,7 @@ Next steps
 - See :ref:`installation` for the full list of installation methods (PyPI,
   GitHub, ``uv``, pinning a specific version).
 - See :ref:`usage` for the complete feature surface: ASE workflows,
-  batched evaluation with ``metatrain``, LAMMPS, NVIDIA ALCHEMI Toolkit, i-PI, 
+  batched evaluation with ``metatrain``, LAMMPS, NVIDIA ALCHEMI Toolkit, i-PI,
   TorchSim, and GROMACS.
 - See :ref:`models` for the list of available pre-trained models and
   their recommended use cases.
