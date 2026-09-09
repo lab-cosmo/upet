@@ -5,7 +5,7 @@ i-PI
 
 .. note::
 
-   Full UPET-with-i-PI documentation is work in progress.
+   Full documentation for the UPET integration with i-PI is work in progress.
 
 UPET models can be driven by `i-PI <https://ipi-code.org/>`_ via the
 ``metatomic`` engine. See the `metatomic i-PI documentation

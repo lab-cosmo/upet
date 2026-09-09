@@ -84,7 +84,7 @@ Click a tile below for the corresponding guide.
    ase
    metatrain
    lammps
+   nvalchemi
    ipi
    torchsim
    gromacs
-   nvalchemi
