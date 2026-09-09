@@ -157,12 +157,12 @@ def test_direct_forces_stress_uncertainty_quantification_raises_errors():
     )
     with pytest.raises(
         NotImplementedError,
-        match=re.escape(message.format(quantity="forces")),
+        match=re.escape(message.format(quantity="force")),
     ):
         calc.get_forces_uncertainty(atoms)
     with pytest.raises(
         NotImplementedError,
-        match=re.escape(message.format(quantity="forces")),
+        match=re.escape(message.format(quantity="force")),
     ):
         calc.get_forces_ensemble(atoms)
     with pytest.raises(
