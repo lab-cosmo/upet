@@ -25,7 +25,11 @@ from ._uncertainty import (
 )
 
 
-BASE_QUANTITIES = ("energy", "non_conservative_forces", "non_conservative_stress")
+BASE_QUANTITIES = (
+    "energy",
+    "non_conservative_force",
+    "non_conservative_stress",
+)
 
 STR_TO_DTYPE = {
     "float32": torch.float32,
@@ -204,6 +208,7 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
                 else (non_conservative,)
             )
             for nc_quantity in requested_nc_quantities:
+                nc_quantity = "force" if nc_quantity == "forces" else nc_quantity
                 nc_quantity_key = quantity_keys[f"non_conservative_{nc_quantity}"][
                     "quantity"
                 ]
@@ -410,9 +415,13 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
         )
         atoms = self._resolve_atoms(atoms)
         if non_conservative or calc_nc_requested:
-            key = self._quantity_keys["non_conservative_forces"]["ensemble"]
+            key = self._quantity_keys["non_conservative_force"]["ensemble"]
+            alt_key = key.replace("non_conservative_force", "non_conservative_forces")
             if key not in self._model_outputs:
-                raise NotImplementedError(UQ_NC_ERROR_MSG.format(key="forces"))
+                if alt_key in self._model_outputs:
+                    key = alt_key
+                else:
+                    raise NotImplementedError(UQ_NC_ERROR_MSG.format(key="force"))
             forces_ensemble = run_direct_uq(
                 calculator=self._base_calculator,
                 atoms=atoms,
