@@ -4,7 +4,7 @@ Changelog
 Unreleased changes
 ------------------
 
-0.2.5
+0.3.0
 -----
 - Added the PET-MAD v1.6.0 models (sizes XS, S and M), trained on the
   MAD-1.6 dataset, which extends MAD-1.5 with catalytic surfaces. These
