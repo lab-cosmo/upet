@@ -21,8 +21,8 @@ The following pre-trained UPET models are available:
      - OMat → MAD-1.6
    * - PET-MAD-1.5
      - r2SCAN
-     - XS, S, M
-     - materials, surfaces & molecules (102 elements)
+     - XS, S
+     - materials & molecules (102 elements)
      - OMat → MAD-1.5
    * - PET-OAM
      - PBE (Materials Project)

@@ -27,7 +27,7 @@ from upet.nvalchemi import UPETWrapper  # noqa: E402
 
 _CHECKPOINT_MODEL = "pet-mad-xs"
 _GRID_CHECKPOINT_VERSION = "1.5.0"  # 'grid' adaptive cutoff
-_SOLVER_CHECKPOINT_VERSION = "1.6.0"  # 'grid' adaptive cutoff
+_SOLVER_CHECKPOINT_VERSION = "1.6.0"  # 'solver' adaptive cutoff
 
 
 def test_adaptive_cutoff_grid_compilation_raises_error():
