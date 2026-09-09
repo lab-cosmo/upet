@@ -25,7 +25,12 @@ from ._uncertainty import (
 )
 
 
-BASE_QUANTITIES = ("energy", "non_conservative_forces", "non_conservative_stress")
+BASE_QUANTITIES = (
+    "energy",
+    "non_conservative_force",
+    "non_conservative_forces",
+    "non_conservative_stress",
+)
 
 STR_TO_DTYPE = {
     "float32": torch.float32,
