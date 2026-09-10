@@ -151,7 +151,7 @@ PET-MAD-1.6 or PET-MAD-1.5:
 ```bibtex
 @misc{PET-MAD-1.6-2026,
       title={High-quality, high-information datasets for universal atomistic machine learning},
-      author={Cesare Malosso and Filippo Bigi and Paolo Pegolo and Joseph W. Abbott and Philip Loche and Mariana Rossi and Michele Ceriotti and Arslan Mazitov},
+      author={Cesare Malosso and Filippo Bigi and Paolo Pegolo and Joseph W. Abbott and Philip Loche and Mariana Rossi and Tiago J. Goncalves and Sandip De and Michele Ceriotti and Arslan Mazitov},
       year={2026},
       eprint={2603.02089},
       archivePrefix={arXiv},
