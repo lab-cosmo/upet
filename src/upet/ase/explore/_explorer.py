@@ -65,15 +65,10 @@ class MADExplorer(torch.nn.Module):
 
         systems = [s.to(self.dtype, self.device) for s in systems]
 
-        sample_kind = outputs["feature"].sample_kind
-        pet_requested_outputs = {
-            self.features_output: mta.ModelOutput(sample_kind=sample_kind)
-        }
-
         if selected_atoms is not None:
             selected_atoms = selected_atoms.to(self.device)
 
-        features = self._get_features(systems, pet_requested_outputs, selected_atoms)
+        features = self._get_features(systems, selected_atoms)
 
         if self.feature_scaler.mean is not None and self.feature_scaler.std is not None:
             features = self.feature_scaler.transform(features)
@@ -118,7 +113,6 @@ class MADExplorer(torch.nn.Module):
     def _get_features(
         self,
         systems: List[mta.System],
-        outputs: Dict[str, mta.ModelOutput],
         selected_atoms: Optional[mts.Labels],
     ) -> torch.Tensor:
         """
@@ -128,27 +122,32 @@ class MADExplorer(torch.nn.Module):
         features across atoms
         """
 
-        output = self.pet(systems, outputs, selected_atoms)
+        # Always request per-atom features from PET, and then do the mean/std
+        # aggregation ourselves
+        pet_requested_outputs = {
+            self.features_output: mta.ModelOutput(sample_kind="atom")
+        }
+
+        output = self.pet(systems, pet_requested_outputs, selected_atoms)
         features = output[self.features_output]
 
         if selected_atoms is not None:
+            # FIXME: this should not be required, since we already pass selected_atoms
+            # to PET. I'm not sure it does anything, keeping it conservatively for now
             features = mts.slice(features, "samples", selected_atoms)
 
-        if outputs[self.features_output].sample_kind == "atom":
-            mean = mts.mean_over_samples(features, "atom")
-            mean_vals = torch.cat([block.values for block in mean.blocks()], dim=0)
+        mean = mts.mean_over_samples(features, "atom")
+        mean_vals = torch.cat([block.values for block in mean.blocks()], dim=0)
 
-            std = mts.std_over_samples(features, "atom")
-            std_vals = torch.cat([block.values for block in std.blocks()], dim=0)
+        std = mts.std_over_samples(features, "atom")
+        std_vals = torch.cat([block.values for block in std.blocks()], dim=0)
 
-            descriptors = torch.cat([mean_vals, std_vals], dim=1)
-        else:
-            descriptors = features.block().values
+        descriptors = torch.cat([mean_vals, std_vals], dim=1)
 
         if descriptors.shape[1] != self.projector.input_dim:
             raise ValueError(
                 f"Expected input dim for projector: {self.projector.input_dim}, "
-                "got: {descriptors.shape[1]}"
+                f"got: {descriptors.shape[1]}"
             )
 
         return descriptors.detach()

@@ -126,6 +126,8 @@ filterwarnings = [
     "ignore: `torch.jit.script_method` is deprecated. Please switch to `torch.compile` or `torch.export`.",
     "ignore: `torch.jit.interface` is deprecated. Please use `torch.compile` instead.",
     "ignore: `torch.jit.set_fusion_strategy` is deprecated. Please use `torch.compile` instead.",
+    "ignore: `torch.jit.script` is not supported in Python 3.14",
+    "ignore: `torch.jit.script_method` is not supported in Python 3.14",
     # PET-MAD v1.0 deprecation warning
     "ignore:.*is deprecated in favor of the newer PET-MAD-1.5.*:DeprecationWarning",
     # NVAlchemiOps Deprecation warning
@@ -137,6 +139,7 @@ filterwarnings = [
     # warp, imported by nvalchemi before `upet` gets a chance to filter this
     # itself (see the same filter in `src/upet/__init__.py`)
     "ignore:warp.config.quiet is deprecated:DeprecationWarning",
+    "ignore:.*Structure will use memory layout compatible with MSVC:DeprecationWarning",
     # nvalchemi `AtomicData` casts every float field to the dtype of
     # `positions`; harmless when a test builds float64 data from float32
     # defaults it never sets itself (`atomic_masses`, `velocities`)

@@ -53,7 +53,7 @@ class PETMADFeaturizer:
     Usage example:
         >>> import ase.io
         >>> import chemiscope
-        >>> from pet_mad.explore import PETMADFeaturizer
+        >>> from upet.explore import PETMADFeaturizer
 
         >>> # Load structures
         >>> frames = ase.io.read("dataset.xyz", ":")
@@ -113,8 +113,8 @@ class PETMADFeaturizer:
         explorer = MADExplorer(petmad.module, device=device)
         explorer.load_checkpoint(petmad_explorer_path)
 
-        outputs = {"feature": mta.ModelOutput(sample_kind="atom")}
-        self.dtype = torch.float64
+        outputs = {"feature": mta.ModelOutput(sample_kind="system")}
+        self.dtype = explorer.dtype
 
         capabilities = mta.ModelCapabilities(
             outputs=outputs,
@@ -155,7 +155,7 @@ class PETMADFeaturizer:
 
         options = mta.ModelEvaluationOptions(
             length_unit=self.length_unit,
-            outputs={"feature": mta.ModelOutput(sample_kind="atom")},
+            outputs={"feature": mta.ModelOutput(sample_kind="system")},
             selected_atoms=selected_atoms,
         )
 
