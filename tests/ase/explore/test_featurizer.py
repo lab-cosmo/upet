@@ -6,6 +6,6 @@ from upet.ase.explore import PETMADFeaturizer
 
 def test_basic_usage():
     atoms = bulk("Si", cubic=True, a=5.43, crystalstructure="diamond")
-    featurizer = PETMADFeaturizer("latest")
+    featurizer = PETMADFeaturizer("latest", check_consistency=True)
     feats = featurizer([atoms], None)
     assert isinstance(feats, np.ndarray)
