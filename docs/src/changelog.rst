@@ -4,6 +4,12 @@ Changelog
 Unreleased changes
 ------------------
 
+0.3.1
+-----
+
+- ``get_upet`` now returns a non-scripted instance of ``AtomisticModel``,
+  allowing you to call ``AtomisticModel.save()`` on it.
+
 0.3.0
 -----
 - Added the PET-MAD v1.6.0 models (sizes XS, S and M), trained on the
