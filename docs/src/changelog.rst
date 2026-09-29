@@ -4,6 +4,9 @@ Changelog
 Unreleased changes
 ------------------
 
+- Fixed :py:class:`~upet.ase.UPETCalculator` leaking stale per-atom results
+  across structures when ``rotational_average_order`` is set (#165).
+
 0.3.1
 -----
 

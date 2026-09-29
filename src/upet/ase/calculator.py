@@ -279,8 +279,13 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
             system_changes=system_changes,
         )
 
+        # Reset the wrapped calculator using ASE's standard .reset() call so that it
+        # only holds results for the current call, and copy them into our own dict
+        # (which ASE resets on system changes). This avoids stale results leaking
+        # across structures.
+        self.calculator.reset()
         self.calculator.calculate(atoms, properties, system_changes)
-        self.results = self.calculator.results
+        self.results.update(self.calculator.results)
 
     @property
     def _base_calculator(self) -> MetatomicCalculator:
