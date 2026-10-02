@@ -6,6 +6,8 @@ Unreleased changes
 
 - Fixed :py:class:`~upet.ase.UPETCalculator` leaking stale per-atom results
   across structures when ``rotational_average_order`` is set (#165).
+- Fixed :py:class:`~upet.ase.UPETCalculator` returning cached results when only
+  ``atoms.info["charge"]`` or ``atoms.info["spin"]`` changes (#173).
 
 0.3.1
 -----
