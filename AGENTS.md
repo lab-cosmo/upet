@@ -52,7 +52,7 @@ Tests (`tests/`):
 - Test file basenames are unique across the whole tree (hence `test_dos_metadata.py`, not a second `test_metadata.py`): there are no `__init__.py` files, so pytest imports test modules into a flat namespace and duplicate basenames collide when running `pytest tests/` from the repository root.
 - Each suite has its own `changedir` in `tox.ini`; tests pull real checkpoints from HuggingFace, so they are network-bound by design.
 
-External dependencies to keep in mind: `metatrain` (pinned to `>=2026.4,<2026.5`), `metatomic-ase`, `nvalchemi-toolkit-ops` (pinned to `>=0.4.0,<0.5.0`), and `huggingface_hub`. Version bumps to these usually require matching updates to the warning allowlist in `pyproject.toml` and sometimes to `_version.py`.
+External dependencies to keep in mind: `metatrain` (pinned to `>=2026.4,<2026.5`), `metatomic-ase`, `metatomic-torch` (pinned to `>=0.1.18,<0.2`), `nvalchemi-toolkit-ops` (pinned to `>=0.4.0,<0.5.0`), and `huggingface_hub`. Version bumps to these usually require matching updates to the warning allowlist in `pyproject.toml` and sometimes to `_version.py`.
 
 ## Documentation
 
