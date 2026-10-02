@@ -253,6 +253,14 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
                 store_rotational_std=True,
             )
 
+    def check_state(self, atoms: Atoms, tol: float = 1e-15) -> List[str]:
+        """
+        Detect system changes with the check of the underlying
+        :py:class:`metatomic_ase.MetatomicCalculator`, which also tracks the
+        ``atoms.info`` entries used as model inputs (such as ``charge`` and ``spin``).
+        """
+        return self._base_calculator.check_state(atoms, tol=tol)
+
     def calculate(
         self, atoms: Atoms, properties: List[str], system_changes: List[str]
     ) -> None:

@@ -28,3 +28,15 @@ def test_basic_usage(model_name):
         assert isinstance(energy, float)
         assert forces.shape == (len(atoms), 3)
         assert virial.shape == (6,)
+
+
+def test_info_change_invalidates_cache():
+    atoms = molecule("H2O", vacuum=5.0)
+    atoms.calc = UPETCalculator(model="pet-omol-s", device="cpu")
+    reference = UPETCalculator(model="pet-omol-s", device="cpu")
+
+    for charge, spin in [(0, 1), (1, 2), (0, 3)]:
+        atoms.info = {"charge": charge, "spin": spin}
+        reference.reset()
+        expected = reference.get_potential_energy(atoms)
+        assert atoms.get_potential_energy() == pytest.approx(expected, abs=1e-5)

@@ -121,9 +121,9 @@ filterwarnings = [
     # metatrain checkpoint upgrade warning
     "ignore: trying to upgrade an old model checkpoint with unknown version, this might fail and require manual modifications",
     # TorchScript deprecation warnings
-    "ignore: `torch.jit.script` is deprecated.*:DeprecationWarning",
-    "ignore: `torch.jit.save` is deprecated.*:DeprecationWarning",
-    "ignore: `torch.jit.load` is deprecated.*:DeprecationWarning",
+    "ignore: `torch.jit.script` is deprecated.*",
+    "ignore: `torch.jit.save` is deprecated.*",
+    "ignore: `torch.jit.load` is deprecated.*",
     "ignore: `torch.jit.script_method` is deprecated. Please switch to `torch.compile` or `torch.export`.",
     "ignore: `torch.jit.interface` is deprecated. Please use `torch.compile` instead.",
     "ignore: `torch.jit.set_fusion_strategy` is deprecated. Please use `torch.compile` instead.",
