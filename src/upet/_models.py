@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import re
@@ -9,6 +10,7 @@ from typing import List, Optional, Tuple, Union
 import torch
 from huggingface_hub import HfApi, hf_hub_download
 from metatomic.torch import AtomisticModel
+from metatomic.torch.weighted_sum import WeightedSum
 from metatrain.utils.io import load_model as load_metatrain_model
 from packaging.version import Version
 
@@ -249,11 +251,20 @@ def _get_upet_exported_atomistic_model(
 
     described_model = _model_holding_the_metadata(loaded_model)
     if not described_model.metadata.name:
-        described_model.metadata = get_upet_metadata(
-            model=model, size=size, version=str(version)
-        )
+        metadata = get_upet_metadata(model=model, size=size, version=str(version))
+        # keep the extra entries of the checkpoint, e.g. its "weighted_sums"
+        metadata.extra = described_model.metadata.extra
+        described_model.metadata = metadata
 
-    return loaded_model.export()
+    exported_model = loaded_model.export()
+
+    # weighted sums of outputs declared by the checkpoint, as a JSON string in its
+    # metadata, e.g. {"energy/mix": {"energy/pbe": 0.5, "energy/r2scan": 0.5}}
+    weighted_sums = exported_model.metadata().extra.get("weighted_sums", "{}")
+    for output_name, weights in json.loads(weighted_sums).items():
+        exported_model = WeightedSum.wrap(exported_model, output_name, weights)
+
+    return exported_model
 
 
 def get_upet(
