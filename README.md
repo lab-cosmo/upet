@@ -214,4 +214,8 @@ For a general citation for the PET architecture, you can use
 
 ## Maintainers
 
-This project is [maintained](https://github.com/lab-cosmo/.github/blob/main/Maintainers.md) by [@abmazitov](https://github.com/abmazitov), who will reply to issues and pull requests opened on this repository as soon as possible. You can mention him directly if you have not received an answer after a couple of days.
+This project is [maintained](https://github.com/lab-cosmo/.github/blob/main/Maintainers.md) by
+[@abmazitov](https://github.com/abmazitov) and
+[@sofiia-chorna](https://github.com/sofiia-chorna) who will reply to issues and pull
+requests opened on this repository as soon as possible. You can mention him directly if
+you have not received an answer after a couple of days.
