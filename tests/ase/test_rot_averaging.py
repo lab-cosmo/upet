@@ -4,14 +4,11 @@ import numpy as np
 import pytest
 from _utils import non_conservative_error_message, supports_non_conservative
 from ase.build import bulk
+from scipy.spatial.transform import Rotation
 
 from upet._models import get_versions_for_model
 from upet._version import UPET_AVAILABLE_MODELS
 from upet.ase import UPETCalculator
-
-
-GRID_ORDERS = [3, 5]
-BATCH_SIZES = [1, 2, 4, 8]
 
 
 @pytest.mark.parametrize("model_name", UPET_AVAILABLE_MODELS)
@@ -34,9 +31,6 @@ def test_calc_rot_averaging(model_name):
     averaged_energy = atoms.get_potential_energy()
     averaged_forces = atoms.get_forces()
     averaged_stress = atoms.get_stress()
-    assert "energy_rot_std" in atoms.calc.results
-    assert "forces_rot_std" in atoms.calc.results
-    assert "stress_rot_std" in atoms.calc.results
     np.testing.assert_allclose(averaged_energy, target_energy, atol=1e-2, rtol=1e-2)
     np.testing.assert_allclose(averaged_forces, target_forces, atol=1e-1, rtol=1e-1)
     np.testing.assert_allclose(averaged_stress, target_stress, atol=1e-2, rtol=1e-2)
@@ -71,22 +65,19 @@ def test_calc_rot_averaging_non_conservative(model_name):
         averaged_forces = atoms.get_forces()
         averaged_stress = atoms.get_stress()
         assert "energy_rot_std" in atoms.calc.results
-        assert "forces_rot_std" in atoms.calc.results
-        assert "stress_rot_std" in atoms.calc.results
         np.testing.assert_allclose(averaged_energy, target_energy, atol=5e-2)
         np.testing.assert_allclose(averaged_forces, target_forces, atol=1e-1)
         np.testing.assert_allclose(averaged_stress, target_stress, atol=5e-2)
 
 
-@pytest.mark.parametrize("batch_size", BATCH_SIZES)
-def test_batched_calc_rot_averaging(batch_size):
+def test_batched_calc_rot_averaging():
     atoms = bulk("Si", cubic=True, a=5.43, crystalstructure="diamond")
     atoms.rattle(0.05)
     calc = UPETCalculator(model="pet-mad-s", rotational_average_order=3)
     batched_calc = UPETCalculator(
         model="pet-mad-s",
         rotational_average_order=3,
-        rotational_average_batch_size=batch_size,
+        rotational_average_batch_size=5,
     )
     atoms.calc = calc
     target_energy = atoms.get_potential_energy()
@@ -101,3 +92,25 @@ def test_batched_calc_rot_averaging(batch_size):
     np.testing.assert_allclose(batched_energy, target_energy, atol=1e-6)
     np.testing.assert_allclose(batched_forces, target_forces, atol=1e-6)
     np.testing.assert_allclose(batched_stress, target_stress, atol=1e-6)
+
+
+def test_energy_rot_std():
+    # the standard deviation of the energy over the quadrature matches the one over
+    # random rotations
+    atoms = bulk("Si", cubic=True, a=5.43, crystalstructure="diamond")
+    atoms.rattle(0.05, seed=0)
+    atoms.calc = UPETCalculator(model="pet-mad-s", rotational_average_order=3)
+    atoms.get_potential_energy()
+
+    calculator = UPETCalculator(model="pet-mad-s")
+    energies = []
+    for rotation in Rotation.random(100, random_state=0).as_matrix():
+        rotated = atoms.copy()
+        rotated.set_cell(atoms.cell.array @ rotation.T)
+        rotated.positions = atoms.positions @ rotation.T
+        rotated.calc = calculator
+        energies.append(rotated.get_potential_energy())
+
+    np.testing.assert_allclose(
+        atoms.calc.results["energy_rot_std"], np.std(energies), rtol=0.2
+    )

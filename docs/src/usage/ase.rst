@@ -217,13 +217,14 @@ Pass a ``rotational_average_order`` to the calculator:
    forces = atoms.get_forces()
    stresses = atoms.get_stress()
 
-Predictions are averaged over a Lebedev quadrature of the O(3) group at
-the requested order (here 3). Higher orders are more accurate but
-costlier.
+Predictions are averaged over a quadrature of the O(3) group, using
+:py:class:`metatomic.torch.o3.SymmetrizedModel`. The order (here 3) is the
+maximum angular momentum of the model response that the average resolves.
+Higher orders are more accurate but costlier.
 
-By default, all transformed structures are evaluated in a single batch,
-which can be memory-intensive for large systems. Reduce memory pressure
-by setting ``rotational_average_batch_size`` to a smaller value:
+Transformed structures are evaluated in batches of 32, which can be
+memory-intensive for large systems. Reduce memory pressure by setting
+``rotational_average_batch_size`` to a smaller value:
 
 .. code-block:: python
 
@@ -237,14 +238,12 @@ by setting ``rotational_average_batch_size`` to a smaller value:
        rotational_average_batch_size=8,
    )
 
-After the evaluation, rotational averaging error statistics are available
-on the calculator's ``results`` dictionary:
+After the evaluation, the standard deviation of the energy over the
+quadrature is available in the calculator's ``results`` dictionary:
 
 .. code-block:: python
 
    energy_rot_std = calculator.results["energy_rot_std"]
-   forces_rot_std = calculator.results["forces_rot_std"]
-   stresses_rot_std = calculator.results["stresses_rot_std"]
 
 
 Empirical dispersion corrections (D3)

@@ -159,7 +159,7 @@ def test_embeddings_match_ase_features():
         cell=data.cell.squeeze().numpy(),
         pbc=[True, True, True],
     )
-    ase_output = ase_calculator._base_calculator.run_model(atoms, outputs=outputs)
+    ase_output = ase_calculator.calculator.run_model(atoms, outputs=outputs)
     ase_feature = ase_output["features"].block().values
 
     batch = Batch.from_data_list([data])
