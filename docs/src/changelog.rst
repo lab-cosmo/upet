@@ -4,6 +4,8 @@ Changelog
 Unreleased changes
 ------------------
 
+- Checkpoints can declare fixed weighted sums of their outputs (e.g. an
+  ``energy/mix`` head) in their metadata, which UPET adds to the model.
 - Fixed :py:class:`~upet.ase.UPETCalculator` leaking stale per-atom results
   across structures when ``rotational_average_order`` is set (#165).
 - Fixed :py:class:`~upet.ase.UPETCalculator` returning cached results when only

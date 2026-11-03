@@ -256,13 +256,57 @@ def _get_upet_exported_atomistic_model(
         metadata.extra = described_model.metadata.extra
         described_model.metadata = metadata
 
-    exported_model = loaded_model.export()
+    return _add_weighted_sums(loaded_model.export())
 
-    # weighted sums of outputs declared by the checkpoint, as a JSON string in its
-    # metadata, e.g. {"energy/mix": {"energy/pbe": 0.5, "energy/r2scan": 0.5}}
-    weighted_sums = exported_model.metadata().extra.get("weighted_sums", "{}")
-    for output_name, weights in json.loads(weighted_sums).items():
-        exported_model = WeightedSum.wrap(exported_model, output_name, weights)
+
+def _add_weighted_sums(exported_model: AtomisticModel) -> AtomisticModel:
+    """Add the weighted sums of outputs declared in the metadata of the model.
+
+    They are declared as a JSON string in ``metadata.extra["weighted_sums"]``, e.g.
+    ``{"energy/mix": {"energy/pbe": 0.5, "energy/r2scan": 0.5}}``. They are added in
+    the order of the declaration, so a weighted sum can use the ones declared before
+    it.
+    """
+    declaration = exported_model.metadata().extra.get("weighted_sums")
+    if declaration is None:
+        return exported_model
+
+    howto_fix = (
+        "Fix or remove this entry, for example with `mtt export <checkpoint> -o "
+        "<new checkpoint> --metadata <metadata.yaml>`."
+    )
+    try:
+        weighted_sums = json.loads(declaration)
+    except json.JSONDecodeError as e:
+        raise ValueError(
+            "the 'weighted_sums' entry in the metadata of this model is not valid "
+            f"JSON: {e}. {howto_fix}"
+        ) from e
+
+    def is_number(value) -> bool:
+        return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+    if not isinstance(weighted_sums, dict) or not all(
+        isinstance(weights, dict) and all(is_number(w) for w in weights.values())
+        for weights in weighted_sums.values()
+    ):
+        raise ValueError(
+            "the 'weighted_sums' entry in the metadata of this model must map the "
+            "name of each weighted sum to the coefficients of the outputs it adds "
+            'up, e.g. {"energy/mix": {"energy/pbe": 0.5, "energy/r2scan": 0.5}}, '
+            f"got {declaration}. {howto_fix}"
+        )
+
+    for output_name, weights in weighted_sums.items():
+        weights = {name: float(weight) for name, weight in weights.items()}
+        try:
+            exported_model = WeightedSum.wrap(exported_model, output_name, weights)
+        except ValueError as e:
+            raise ValueError(
+                f"unable to add the '{output_name}' weighted sum declared in the "
+                f"'weighted_sums' entry of the metadata of this model: {e}. "
+                f"{howto_fix}"
+            ) from e
 
     return exported_model
 
