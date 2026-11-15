@@ -141,6 +141,11 @@ def upet_resolve_model(
             requested_version = Version(requested_version)
         if requested_version in all_model_versions:
             version = requested_version
+        elif f"{model}-{size}-v{requested_version}" == "pet-oam-l-v0.1.0":
+            raise ValueError(
+                "`pet-oam-l-v0.1.0` was a copy of `pet-omat-l-v0.1.0`, hence it was "
+                "removed. Use `pet-oam-l-v0.1.1`"
+            )
         else:
             raise ValueError(
                 f"Requested version {requested_version} not available for model "
