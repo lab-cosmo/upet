@@ -6,7 +6,9 @@ import ase.calculators.calculator
 import numpy as np
 import torch
 from ase import Atoms
-from metatomic_ase import MetatomicCalculator, SymmetrizedCalculator
+from metatomic.torch import ModelOutput
+from metatomic.torch.o3 import SymmetrizedModel
+from metatomic_ase import MetatomicCalculator
 
 from .._models import (
     get_upet,
@@ -55,7 +57,7 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
         checkpoint_path: Optional[Union[str, Path]] = None,
         variants: Optional[Dict[str, Optional[str]]] = None,
         rotational_average_order: Optional[int] = None,
-        rotational_average_batch_size: Optional[int] = None,
+        rotational_average_batch_size: int = 32,
         *,
         device: Optional[str] = None,
         non_conservative: Union[bool, Literal["forces", "stress"]] = False,
@@ -117,10 +119,14 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
             uncertainty and non-conservative outputs will be taken from this variant.
             If not provided, the default variant for each output will be used
             (for example: ``energy`` with no variant specification).
-        :param rotational_average_order: order of the Lebedev-Laikov grid used for
-            averaging the prediction over rotations.
-        :param rotational_average_batch_size: batch size to use for the rotational
-            averaging. If `None`, all rotations will be computed at once.
+        :param rotational_average_order: maximum angular momentum of the model
+            response resolved when averaging the predictions over rotations and
+            inversion, see :py:class:`metatomic.torch.o3.SymmetrizedModel`. The O(3)
+            grid integrates up to twice this order, so that the standard deviation of
+            the energy over the grid, stored in ``results["energy_rot_std"]``, is
+            converged as well.
+        :param rotational_average_batch_size: number of rotated structures evaluated
+            at once during the rotational averaging.
         :param device: torch device to use for the calculation. If `None`, we will try
             the options in the model's `supported_device` in order.
         :param non_conservative: whether to use the non-conservative regime of forces
@@ -180,10 +186,6 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
                 checkpoint_path=checkpoint_path,
             )
 
-            # get_upet only scripts the inner model
-            # also run code in AtomisticModel as TorchScript
-            loaded_model = torch.jit.script(loaded_model)
-
         model_outputs = loaded_model.capabilities().outputs
         self._model_outputs = model_outputs
         selected_variant = None if variants is None else variants.get("energy")
@@ -234,24 +236,53 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
             loaded_model._capabilities.dtype = DTYPE_TO_STR[dtype]
             loaded_model = loaded_model.to(dtype=dtype, device=device)
 
-        self.calculator = MetatomicCalculator(
-            loaded_model,
-            extensions_directory=None,
-            check_consistency=check_consistency,
-            device=device,
-            variants=variants,
-            non_conservative=non_conservative,
-            uncertainty_threshold=uncertainty_threshold,
-        )
-        self.implemented_properties = self.calculator.implemented_properties
+        calculator_options = {
+            "extensions_directory": None,
+            "check_consistency": check_consistency,
+            "device": device,
+            "variants": variants,
+            "non_conservative": non_conservative,
+            "uncertainty_threshold": uncertainty_threshold,
+        }
 
-        if rotational_average_order is not None:
-            self.calculator = SymmetrizedCalculator(
-                self.calculator,
-                l_max=rotational_average_order,
-                batch_size=rotational_average_batch_size,
-                store_rotational_std=True,
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=UserWarning)
+
+            # get_upet only scripts the inner model
+            # also run code in AtomisticModel as TorchScript
+            scripted_model = torch.jit.script(loaded_model)
+            averaged_model = None
+            if rotational_average_order is not None:
+                averaged_model = torch.jit.script(
+                    SymmetrizedModel.wrap(
+                        loaded_model,
+                        max_angular_momentum_grid=2 * rotational_average_order,
+                        batch_size=rotational_average_batch_size,
+                    )
+                )
+
+        if averaged_model is None:
+            self._energy_variance_key = None
+            self.calculator = MetatomicCalculator(scripted_model, **calculator_options)
+            self._gradient_uq_calculator = self.calculator
+        else:
+            self._energy_variance_key = (
+                "o3::variance::" + quantity_keys["energy"]["quantity"]
             )
+            self.calculator = MetatomicCalculator(
+                averaged_model,
+                additional_outputs={
+                    self._energy_variance_key: ModelOutput(sample_kind="system")
+                },
+                **calculator_options,
+            )
+            # the gradient ensemble UQ needs the model before averaging, since its
+            # energy ensemble is not differentiable with autograd
+            self._gradient_uq_calculator = MetatomicCalculator(
+                scripted_model, **calculator_options
+            )
+
+        self.implemented_properties = self.calculator.implemented_properties
 
     def check_state(self, atoms: Atoms, tol: float = 1e-15) -> List[str]:
         """
@@ -259,7 +290,7 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
         :py:class:`metatomic_ase.MetatomicCalculator`, which also tracks the
         ``atoms.info`` entries used as model inputs (such as ``charge`` and ``spin``).
         """
-        return self._base_calculator.check_state(atoms, tol=tol)
+        return self.calculator.check_state(atoms, tol=tol)
 
     def calculate(
         self, atoms: Atoms, properties: List[str], system_changes: List[str]
@@ -272,13 +303,7 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
         detail of ``atoms.get_energy()`` and related functions. See
         :py:meth:`ase.calculators.calculator.Calculator.calculate` for more information.
 
-        If the `rotational_average_order` parameter is set during initialization, the
-        prediction will be averaged over unique rotations in the Lebedev-Laikov grid of
-        a chosen order.
-
-        If the `rotational_average_batch_size` parameter is set during initialization,
-        averaging will be performed in batches of the given size to avoid out of memory
-        errors.
+        Predictions are rotationally averaged when `rotational_average_order` is set.
         """
 
         super().calculate(
@@ -294,19 +319,14 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
         self.calculator.reset()
         self.calculator.calculate(atoms, properties, system_changes)
         self.results.update(self.calculator.results)
-
-    @property
-    def _base_calculator(self) -> MetatomicCalculator:
-        """The underlying calculator, unwrapped from rotational averaging."""
-        calc = self.calculator
-        if isinstance(calc, SymmetrizedCalculator):
-            return calc.base_calculator
-        return calc
+        if self._energy_variance_key is not None:
+            variance = self.calculator.additional_outputs[self._energy_variance_key]
+            self.results["energy_rot_std"] = variance.block().values.sqrt().item()
 
     @property
     def supports_uncertainty(self) -> bool:
         """Whether the calculator supports uncertainty quantification."""
-        return self._base_calculator._calculate_uncertainty
+        return self.calculator._calculate_uncertainty
 
     def _resolve_atoms(self, atoms: Optional[Atoms]) -> Atoms:
         """Fall back to the last calculated atoms when none are given."""
@@ -323,8 +343,7 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
     ) -> np.ndarray:
         """
         Calculate the energy uncertainty for a given :py:class:`ase.Atoms` object.
-        Note, that the uncertainty is not rotationally averaged, even when the
-        calculator is: it is requested from the base model directly.
+        The uncertainty is rotationally averaged when the calculator is.
 
         :param atoms: ASE atoms object. If ``None``, the last calculated atoms will be
             used.
@@ -335,7 +354,7 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
         if key not in self._model_outputs:
             raise NotImplementedError(UQ_ERROR_MSG.format(key="Energy uncertainty"))
         return run_direct_uq(
-            calculator=self._base_calculator,
+            calculator=self.calculator,
             atoms=self._resolve_atoms(atoms),
             key=key,
             per_atom=per_atom,
@@ -346,8 +365,7 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
     ) -> np.ndarray:
         """
         Calculate the energy ensemble for a given :py:class:`ase.Atoms` object.
-        Note, that the ensemble is not rotationally averaged, even when the
-        calculator is: it is requested from the base model directly.
+        The ensemble is rotationally averaged when the calculator is.
 
         :param atoms: ASE atoms object. If ``None``, the last calculated atoms will be
             used.
@@ -358,7 +376,7 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
         if key not in self._model_outputs:
             raise NotImplementedError(UQ_ERROR_MSG.format(key="Energy ensemble"))
         return run_direct_uq(
-            calculator=self._base_calculator,
+            calculator=self.calculator,
             atoms=self._resolve_atoms(atoms),
             key=key,
             per_atom=per_atom,
@@ -379,6 +397,8 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
         itself is initialized in the conservative regime.
         Calculating the conservative forces uncertainty for a non-conservative forces
         calculator is not supported.
+        The conservative uncertainty is not rotationally averaged, even when the
+        calculator is.
 
         :param atoms: ASE atoms object. If ``None``, the last calculated atoms will be
             used.
@@ -407,6 +427,8 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
         non-conservative ensemble spread.
         Calculating the conservative forces ensemble for a non-conservative forces
         calculator is not supported.
+        The conservative ensemble is not rotationally averaged, even when the
+        calculator is.
 
         :param atoms: ASE atoms object. If ``None``, the last calculated atoms will be
             used.
@@ -424,7 +446,7 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
         # Otherwise, for a conservaitve forces calculation and
         # non_conservative=False, we use the gradient ensemble forces UQ.
 
-        calc_nc_requested = self._base_calculator.parameters["non_conservative"] in (
+        calc_nc_requested = self.calculator.parameters["non_conservative"] in (
             True,
             "forces",
         )
@@ -441,7 +463,7 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
                 else:
                     raise NotImplementedError(UQ_NC_ERROR_MSG.format(key="force"))
             forces_ensemble = run_direct_uq(
-                calculator=self._base_calculator,
+                calculator=self.calculator,
                 atoms=atoms,
                 key=key,
                 per_atom=True,
@@ -462,7 +484,7 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
                     UQ_GRAD_ERROR_MSG.format(key="Energy ensemble")
                 )
             forces_ensemble = run_gradient_ensemble_uq(
-                calculator=self._base_calculator,
+                calculator=self._gradient_uq_calculator,
                 atoms=atoms,
                 key=key,
                 gradients=("positions",),
@@ -486,6 +508,8 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
         calculator itself is initialized in the conservative regime.
         Calculating the conservative stress uncertainty for a non-conservative stress
         calculator is not supported.
+        The conservative uncertainty is not rotationally averaged, even when the
+        calculator is.
 
         :param atoms: ASE atoms object. If ``None``, the last calculated atoms will be
             used.
@@ -514,6 +538,8 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
         calculator itself is initialized in the conservative regime.
         Calculating the conservative stress uncertainty for a non-conservative stress
         calculator is not supported.
+        The conservative ensemble is not rotationally averaged, even when the
+        calculator is.
 
         :param atoms: ASE atoms object. If ``None``, the last calculated atoms will be
             used.
@@ -522,7 +548,7 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
         :return: Stress uncertainty as numpy.ndarray with shape [6, n_ensemble] if
             ``voigt=True`` or [3, 3, n_ensemble] if ``voigt=False``, in eV/Angstrom^3.
         """
-        calc_nc_requested = self._base_calculator.parameters["non_conservative"] in (
+        calc_nc_requested = self.calculator.parameters["non_conservative"] in (
             True,
             "stress",
         )
@@ -534,7 +560,7 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
             if key not in self._model_outputs:
                 raise NotImplementedError(UQ_NC_ERROR_MSG.format(key="stress"))
             stress_ensemble = run_direct_uq(
-                calculator=self._base_calculator,
+                calculator=self.calculator,
                 atoms=self._resolve_atoms(atoms),
                 key=key,
                 per_atom=False,
@@ -546,7 +572,7 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
                     UQ_GRAD_ERROR_MSG.format(key="Energy ensemble")
                 )
             stress_ensemble = run_gradient_ensemble_uq(
-                calculator=self._base_calculator,
+                calculator=self._gradient_uq_calculator,
                 atoms=self._resolve_atoms(atoms),
                 key=key,
                 gradients=("strain",),

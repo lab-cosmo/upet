@@ -178,8 +178,8 @@ def test_direct_forces_stress_uncertainty_quantification_raises_errors():
 
 
 def test_uncertainty_with_rotational_averaging():
-    # uncertainty outputs are requested from the base model, so they are available
-    # but not themselves rotationally averaged
+    # the rotationally averaged energy uncertainty stays close to the plain one, and
+    # the gradient ensemble UQ uses the model before averaging
     atoms = bulk("Si", cubic=True, a=5.43, crystalstructure="diamond")
     calc = UPETCalculator(
         model="pet-mad-s", version="1.6.0", rotational_average_order=3
@@ -189,7 +189,7 @@ def test_uncertainty_with_rotational_averaging():
     assert np.allclose(
         calc.get_energy_uncertainty(atoms),
         plain_calc.get_energy_uncertainty(atoms),
-        atol=1e-6,
+        rtol=1e-2,
     )
     assert np.allclose(
         calc.get_forces_uncertainty(atoms),

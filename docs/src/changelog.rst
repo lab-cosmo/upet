@@ -4,6 +4,15 @@ Changelog
 Unreleased changes
 ------------------
 
+- Rotational averaging in :py:class:`~upet.ase.UPETCalculator` now uses
+  :py:class:`metatomic.torch.o3.SymmetrizedModel`.
+- ``rotational_average_order`` is now the maximum angular momentum resolved by
+  the average, which uses more rotations for the same value than before.
+- ``rotational_average_batch_size`` defaults to 32 and no longer accepts
+  ``None``.
+- Uncertainties and ensembles are rotationally averaged as well, except the
+  conservative force and stress ensembles.
+- ``forces_rot_std`` and ``stress_rot_std`` are no longer returned.
 - Fixed :py:class:`~upet.ase.UPETCalculator` leaking stale per-atom results
   across structures when ``rotational_average_order`` is set (#165).
 - Fixed :py:class:`~upet.ase.UPETCalculator` returning cached results when only
