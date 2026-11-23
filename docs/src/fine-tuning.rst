@@ -82,3 +82,44 @@ Select the new head with the ``variant/energy`` parameter in the
 
    pair_style metatomic model.pt variant/energy finetune
    pair_coeff * * 14
+
+Weighted sums of heads
+----------------------
+
+A checkpoint with several energy heads can also provide fixed weighted sums of
+them, for example an ``energy/mix`` head equal to ``0.5 * energy/pbe + 0.5 *
+energy/r2scan``. The coefficients are declared in the ``extra`` metadata of the
+checkpoint, as a JSON string under the ``weighted_sums`` key. Write them in a
+``metadata.yaml`` file:
+
+.. code-block:: yaml
+
+   name: My model
+   extra:
+     weighted_sums: '{"energy/mix": {"energy/pbe": 0.5, "energy/r2scan": 0.5}}'
+
+and add them to the checkpoint with ``mtt export``:
+
+.. code-block:: bash
+
+   mtt export model.ckpt -o model-mix.ckpt --metadata metadata.yaml
+
+Every model loaded from ``model-mix.ckpt`` by UPET then has an ``energy/mix``
+output, computed with :py:class:`metatomic.torch.weighted_sum.WeightedSum`, which
+is selected like any other head:
+
+.. code-block:: python
+
+   from upet import save_upet
+   from upet.ase import UPETCalculator
+
+   calc = UPETCalculator(checkpoint_path="model-mix.ckpt", variants={"energy": "mix"})
+
+   # exported model for LAMMPS, i-PI, ..., with the energy/mix output
+   save_upet(checkpoint_path="model-mix.ckpt", output="model-mix.pt")
+
+Several weighted sums can be declared, and each one can use the ones declared
+before it. The exported model keeps the declaration, so the coefficients can be
+read back with ``get_upet(checkpoint_path="model-mix.ckpt").metadata().extra``.
+This is only supported for plain checkpoints: in a checkpoint with uncertainty
+(LLPR), the metadata of the checkpoint itself is not used.
