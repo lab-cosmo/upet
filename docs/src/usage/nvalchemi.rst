@@ -81,6 +81,22 @@ evaluates all of them together:
 ``outputs["forces"]`` is stacked over all atoms in the batch in the same
 order as ``data_list``.
 
+Number of neighbors
+^^^^^^^^^^^^^^^^^^^
+
+For models trained with a variable number of neighbors of the adaptive
+cutoff, the target number of neighbors can be chosen when loading the
+model (see :ref:`ase-num-neighbors` for details). It is set before
+``torch.compile``, so it can be combined with ``compile_model=True``:
+
+.. code-block:: python
+
+   model = UPETWrapper.from_checkpoint(
+       checkpoint_path="path/to/model.ckpt",
+       device=device,
+       num_neighbors=16,
+   )
+
 
 Examples
 --------
