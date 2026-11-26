@@ -247,6 +247,46 @@ on the calculator's ``results`` dictionary:
    stresses_rot_std = calculator.results["stresses_rot_std"]
 
 
+.. _ase-num-neighbors:
+
+Number of neighbors of the adaptive cutoff
+------------------------------------------
+
+UPET models with an adaptive cutoff choose a cutoff radius for each atom
+so that it sees a target number of neighbors. Models trained with a
+*variable* number of neighbors (the ``variable_num_neighbors_adaptive``
+hyper-parameter of ``metatrain``) were trained over a whole range of
+targets, and the target can be chosen at evaluation time with
+``num_neighbors``:
+
+.. code-block:: python
+
+   from upet.ase import UPETCalculator
+
+   calculator = UPETCalculator(
+       checkpoint_path="path/to/model.ckpt",
+       device="cpu",
+       num_neighbors=16,
+   )
+
+Fewer neighbors make the model faster, more neighbors let each atom see
+further. The value must be within the range the model was trained with,
+otherwise a ``ValueError`` reports that range. Models trained with a fixed
+number of neighbors only accept their own default, and leaving
+``num_neighbors`` unset always uses the default of the model.
+
+The value is fixed when the model is loaded, and it is stored in the
+exported model: :py:func:`upet.get_upet` and :py:func:`upet.save_upet`
+accept the same ``num_neighbors`` argument, to use it in the other engines
+(LAMMPS, i-PI, ...).
+
+.. note::
+
+   The uncertainties of the models that support them (see
+   :ref:`ase-uncertainty`) are calibrated at the default number of
+   neighbors, and may be less reliable for other values.
+
+
 Empirical dispersion corrections (D3)
 -------------------------------------
 

@@ -56,6 +56,7 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
         variants: Optional[Dict[str, Optional[str]]] = None,
         rotational_average_order: Optional[int] = None,
         rotational_average_batch_size: Optional[int] = None,
+        num_neighbors: Optional[int] = None,
         *,
         device: Optional[str] = None,
         non_conservative: Union[bool, Literal["forces", "stress"]] = False,
@@ -121,6 +122,12 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
             averaging the prediction over rotations.
         :param rotational_average_batch_size: batch size to use for the rotational
             averaging. If `None`, all rotations will be computed at once.
+        :param num_neighbors: target number of neighbors of the adaptive cutoff.
+            Only available for models trained with a variable number of neighbors,
+            and must be within the range the model was trained with (the
+            ``variable_num_neighbors_adaptive`` hyper-parameter). Smaller values make
+            the model faster, larger values make it see further. If ``None``, the
+            default of the model is used.
         :param device: torch device to use for the calculation. If `None`, we will try
             the options in the model's `supported_device` in order.
         :param non_conservative: whether to use the non-conservative regime of forces
@@ -178,6 +185,7 @@ class UPETCalculator(ase.calculators.calculator.Calculator):
                 size=size,
                 version=version,
                 checkpoint_path=checkpoint_path,
+                num_neighbors=num_neighbors,
             )
 
             # get_upet only scripts the inner model

@@ -23,7 +23,10 @@ maintainers = [
 ]
 
 dependencies = [
-    "metatrain>=2026.4, <2026.5",
+    # TODO: temporary pin to metatensor/metatrain#1356 (variable number of
+    # neighbors of the adaptive cutoff); replace with the release including it.
+    # PyPI rejects direct references, so this must go before releasing upet.
+    "metatrain @ git+https://github.com/abmazitov/metatrain.git@310a60a25898ba5e0a589339873463c36c92b1de",
     "metatomic-ase>=0.1.4, <0.2",
     "nvalchemi-toolkit-ops>=0.4.0,<0.5.0",
     "huggingface_hub",

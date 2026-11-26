@@ -219,3 +219,8 @@ def test_metatrain_model_compatibility(real_wrapper_cpu):
     assert np.allclose(nv_stress, ase_stress, atol=1e-5), (
         f"Stress mismatch: max |dS|={float((nv_stress - ase_stress).abs().max())}"
     )
+
+
+def test_from_checkpoint_num_neighbors_out_of_range():
+    with pytest.raises(ValueError, match="num_neighbors"):
+        UPETWrapper.from_checkpoint(model="pet-mad-xs", num_neighbors=10_000)

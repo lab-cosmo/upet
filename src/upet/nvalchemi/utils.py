@@ -63,6 +63,7 @@ def normalize_hypers(hypers: dict[str, Any]) -> dict[str, Any]:
     :param hypers: Hyper-parameter dict pulled from the checkpoint's
         ``model_hypers`` (or constructed by hand).
     :return: Normalised copy, with ``num_neighbors_adaptive`` /
+        ``variable_num_neighbors_adaptive`` /
         ``adaptive_cutoff_method`` / ``cutoff_width_adaptive`` /
         ``system_conditioning`` / ``long_range`` defaulted when absent.
     :raises ValueError: When a required key is missing.
@@ -72,6 +73,7 @@ def normalize_hypers(hypers: dict[str, Any]) -> dict[str, Any]:
         raise ValueError(f"PET hypers are missing required keys: {missing}")
     normalized = dict(hypers)
     normalized.setdefault("num_neighbors_adaptive", None)
+    normalized.setdefault("variable_num_neighbors_adaptive", None)
     normalized.setdefault("adaptive_cutoff_method", "grid")
     normalized.setdefault("cutoff_width_adaptive", 1.0)
     normalized.setdefault("system_conditioning", False)

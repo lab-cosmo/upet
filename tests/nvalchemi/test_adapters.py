@@ -33,6 +33,7 @@ class TestAdaptInput:
             "species",
             "cells",
             "cell_shifts",
+            "cell_contributions",
             "system_indices",
         ):
             assert key in inp, f"Missing key: {key}"

@@ -8,6 +8,13 @@ Unreleased changes
   across structures when ``rotational_average_order`` is set (#165).
 - Fixed :py:class:`~upet.ase.UPETCalculator` returning cached results when only
   ``atoms.info["charge"]`` or ``atoms.info["spin"]`` changes (#173).
+- Added a ``num_neighbors`` option to :py:class:`~upet.ase.UPETCalculator`,
+  :py:func:`~upet.get_upet`, :py:func:`~upet.save_upet` and
+  :py:meth:`UPETWrapper.from_checkpoint
+  <upet.nvalchemi.UPETWrapper.from_checkpoint>`, to choose the target
+  number of neighbors of the adaptive cutoff of models trained with a
+  variable number of neighbors (#180).
+
 
 0.3.1
 -----
