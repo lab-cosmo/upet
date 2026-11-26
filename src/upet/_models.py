@@ -9,7 +9,10 @@ from typing import Any, List, Mapping, Optional, Tuple, Union
 import torch
 from huggingface_hub import HfApi, hf_hub_download
 from metatomic.torch import AtomisticModel
+from metatrain.llpr import LLPRUncertaintyModel
+from metatrain.pet import PET
 from metatrain.utils.io import load_model as load_metatrain_model
+from metatrain.utils.wrapper import MetatrainModel
 from packaging.version import Version
 
 from ._metadata import get_upet_metadata
@@ -156,17 +159,6 @@ def upet_resolve_model(
     return size, version
 
 
-def _model_holding_the_metadata(model: torch.nn.Module) -> torch.nn.Module:
-    """Give back the model whose metadata ends up in the exported model.
-
-    An uncertainty model has metadata of its own, but the one of the model it
-    wraps takes precedence when exporting, so that is the one to look at (and to
-    fill in, for a checkpoint that came without any).
-    """
-    wrapped = getattr(model, "model", None)
-    return model if wrapped is None else wrapped
-
-
 def _resolve_and_download_checkpoint(
     model: str,
     size: Optional[str] = None,
@@ -262,32 +254,26 @@ def check_num_neighbors(hypers: Mapping[str, Any], num_neighbors: int) -> None:
         )
 
 
-def _find_pet(model: torch.nn.Module) -> Any:
+def _find_pet(model: MetatrainModel) -> PET:
     """Find the PET model inside a loaded metatrain model.
 
-    Metatrain wraps the architecture in a ``MetatrainModel`` (under ``core``),
-    and an LLPR uncertainty model wraps a whole ``MetatrainModel`` in turn
-    (under ``model``), so follow both until reaching the PET model.
+    The architecture is the ``core`` of the ``MetatrainModel``, unless the model
+    has uncertainties: then the ``core`` is an LLPR model, wrapping in turn a
+    whole ``MetatrainModel``.
 
     :param model: A loaded metatrain model.
     :return: The PET model it wraps.
-    :raises ValueError: When there is no PET model inside ``model``.
+    :raises ValueError: When ``model`` does not wrap a PET model.
     """
-    current: Any = model
-    while not hasattr(current, "_set_num_neighbors_adaptive"):
-        inner = getattr(current, "core", None)
-        if inner is None:
-            inner = getattr(current, "model", None)
-        if inner is None:
-            raise ValueError(
-                f"`num_neighbors` can not be set: {type(model).__name__} does not "
-                "wrap a PET model"
-            )
-        current = inner
-    return current
+    core = model.core
+    if isinstance(core, LLPRUncertaintyModel):
+        core = core.model.core
+    if not isinstance(core, PET):
+        raise ValueError(f"expected a PET model, got {type(core).__name__}")
+    return core
 
 
-def _set_num_neighbors(model: torch.nn.Module, num_neighbors: int) -> None:
+def _set_num_neighbors(model: MetatrainModel, num_neighbors: int) -> None:
     """Check and set the target number of neighbors of a loaded metatrain model.
 
     Must be called before exporting and scripting the model: the value is baked
@@ -343,10 +329,17 @@ def _get_upet_exported_atomistic_model(
         )
         loaded_model = load_metatrain_model(path)
 
-    described_model = _model_holding_the_metadata(loaded_model)
-    if not described_model.metadata.name:
-        described_model.metadata = get_upet_metadata(
-            model=model, size=size, version=str(version)
+    # Checkpoints written before the ``MetatrainModel`` wrapper keep their
+    # metadata on the architecture, but when exporting, metatrain merges the
+    # (empty) metadata of the wrapper over it. This is the case of all the
+    # published checkpoints, which are converted when loading. Move it to the
+    # wrapper, and only fall back to the UPET defaults when there is none at all.
+    if not loaded_model.metadata.name:
+        pet_metadata = _find_pet(loaded_model).metadata
+        loaded_model.metadata = (
+            pet_metadata
+            if pet_metadata.name
+            else get_upet_metadata(model=model, size=size, version=str(version))
         )
 
     if num_neighbors is not None:

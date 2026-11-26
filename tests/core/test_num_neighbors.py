@@ -1,5 +1,7 @@
 import pytest
 import torch
+from metatrain.llpr import LLPRUncertaintyModel
+from metatrain.pet import PET
 
 from upet._models import _set_num_neighbors, check_num_neighbors, get_upet
 
@@ -42,11 +44,11 @@ def test_check_num_neighbors_fixed():
         check_num_neighbors(hypers, 20)
 
 
-class _FakePET(torch.nn.Module):
-    """Stands in for ``metatrain.pet.PET``, recording calls to the setter."""
+class _FakePET(PET):
+    """A ``PET`` without any layers, recording calls to the setter."""
 
     def __init__(self, hypers):
-        super().__init__()
+        torch.nn.Module.__init__(self)
         self.hypers = hypers
         self.calls = []
 
@@ -54,20 +56,20 @@ class _FakePET(torch.nn.Module):
         self.calls.append((num_neighbors, variable_range))
 
 
+class _FakeLLPR(LLPRUncertaintyModel):
+    """An ``LLPRUncertaintyModel`` that only wraps ``model``."""
+
+    def __init__(self, model):
+        torch.nn.Module.__init__(self)
+        self.model = model
+
+
 class _FakeMetatrainModel(torch.nn.Module):
-    """Stands in for ``metatrain.utils.wrapper.MetatrainModel``."""
+    """Stands in for ``MetatrainModel``, of which only ``core`` is used."""
 
     def __init__(self, core):
         super().__init__()
         self.core = core
-
-
-class _FakeLLPR(torch.nn.Module):
-    """Stands in for ``metatrain.llpr.LLPRUncertaintyModel``."""
-
-    def __init__(self, model):
-        super().__init__()
-        self.model = model
 
 
 @pytest.mark.parametrize("with_llpr", [False, True])
@@ -90,7 +92,7 @@ def test_set_num_neighbors(with_llpr):
 
 
 def test_set_num_neighbors_not_pet():
-    with pytest.raises(ValueError, match="does not wrap a PET model"):
+    with pytest.raises(ValueError, match="expected a PET model, got Linear"):
         _set_num_neighbors(_FakeMetatrainModel(torch.nn.Linear(1, 1)), 16)
 
 
