@@ -4,7 +4,7 @@ import re
 import warnings
 from functools import lru_cache
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
+from typing import Any, List, Mapping, Optional, Tuple, Union
 
 import torch
 from huggingface_hub import HfApi, hf_hub_download
@@ -217,11 +217,102 @@ def _resolve_and_download_checkpoint(
     return size, version, path
 
 
+def check_num_neighbors(hypers: Mapping[str, Any], num_neighbors: int) -> None:
+    """Check that a PET model can be evaluated with ``num_neighbors`` neighbors.
+
+    The target number of neighbors of the adaptive cutoff can only be changed
+    within the ``variable_num_neighbors_adaptive`` range the model was trained
+    with. Shared by the ASE (:func:`get_upet`) and nvalchemi
+    (:meth:`upet.nvalchemi.UPETWrapper.from_checkpoint`) connectors.
+
+    :param hypers: The model hyper-parameters (``model_data["model_hypers"]`` of
+        the checkpoint, or ``PET.hypers``).
+    :param num_neighbors: The requested target number of neighbors.
+    :raises ValueError: When the model does not use the adaptive cutoff, was not
+        trained with a variable number of neighbors, or ``num_neighbors`` is
+        outside of the training range.
+    """
+    if isinstance(num_neighbors, bool) or not isinstance(num_neighbors, int):
+        raise TypeError(
+            f"`num_neighbors` must be an integer, got {type(num_neighbors).__name__}"
+        )
+
+    default = hypers["num_neighbors_adaptive"]
+    if default is None:
+        raise ValueError(
+            "`num_neighbors` can not be set: this model does not use the adaptive "
+            "cutoff, and considers all the neighbors within the cutoff radius."
+        )
+
+    variable_range = hypers["variable_num_neighbors_adaptive"]
+    if variable_range is None:
+        if num_neighbors == default:
+            return
+        raise ValueError(
+            f"`num_neighbors` can not be set to {num_neighbors}: this model was "
+            f"trained with a fixed number of neighbors ({default}). Only models "
+            "trained with `variable_num_neighbors_adaptive` support changing it."
+        )
+
+    low, high = (int(value) for value in variable_range)
+    if not low <= num_neighbors <= high:
+        raise ValueError(
+            f"`num_neighbors` must be within [{low}, {high}], the range this model "
+            f"was trained with, got {num_neighbors}"
+        )
+
+
+def _find_pet(model: torch.nn.Module) -> Any:
+    """Find the PET model inside a loaded metatrain model.
+
+    Metatrain wraps the architecture in a ``MetatrainModel`` (under ``core``),
+    and an LLPR uncertainty model wraps a whole ``MetatrainModel`` in turn
+    (under ``model``), so follow both until reaching the PET model.
+
+    :param model: A loaded metatrain model.
+    :return: The PET model it wraps.
+    :raises ValueError: When there is no PET model inside ``model``.
+    """
+    current: Any = model
+    while not hasattr(current, "_set_num_neighbors_adaptive"):
+        inner = getattr(current, "core", None)
+        if inner is None:
+            inner = getattr(current, "model", None)
+        if inner is None:
+            raise ValueError(
+                f"`num_neighbors` can not be set: {type(model).__name__} does not "
+                "wrap a PET model"
+            )
+        current = inner
+    return current
+
+
+def _set_num_neighbors(model: torch.nn.Module, num_neighbors: int) -> None:
+    """Check and set the target number of neighbors of a loaded metatrain model.
+
+    Must be called before exporting and scripting the model: the value is baked
+    into the exported model.
+
+    :param model: A loaded metatrain model, wrapping a PET model.
+    :param num_neighbors: The requested target number of neighbors.
+    """
+    pet = _find_pet(model)
+    check_num_neighbors(pet.hypers, num_neighbors)
+    if num_neighbors == pet.hypers["num_neighbors_adaptive"]:
+        return
+
+    # keep the training range, so that the hypers stay consistent
+    pet._set_num_neighbors_adaptive(
+        num_neighbors, pet.hypers["variable_num_neighbors_adaptive"]
+    )
+
+
 def _get_upet_exported_atomistic_model(
     model: Optional[str] = None,
     size: Optional[str] = None,
     version: Optional[Union[str, Version]] = "latest",
     checkpoint_path: Optional[Union[str, Path]] = None,
+    num_neighbors: Optional[int] = None,
 ) -> AtomisticModel:
     """
     Internal helper to load a UPET AtomisticModel without caching or TorchScript.
@@ -258,6 +349,9 @@ def _get_upet_exported_atomistic_model(
             model=model, size=size, version=str(version)
         )
 
+    if num_neighbors is not None:
+        _set_num_neighbors(loaded_model, num_neighbors)
+
     return loaded_model.export()
 
 
@@ -267,6 +361,7 @@ def get_upet(
     size: Optional[str] = None,
     version: Optional[Union[str, Version]] = "latest",
     checkpoint_path: Optional[Union[str, Path]] = None,
+    num_neighbors: Optional[int] = None,
 ) -> AtomisticModel:
     """Get a metatomic ``AtomisticModel`` for a UPET MLIP.
 
@@ -279,9 +374,17 @@ def get_upet(
         If the filename follows standard naming (e.g., "pet-mad-s-v1.0.2.ckpt"),
         model/size/version are extracted automatically, while the `model` and
         `version` parameters are ignored.
+    :param num_neighbors: target number of neighbors of the adaptive cutoff. Only
+        available for models trained with a variable number of neighbors, and must
+        be within the training range (``variable_num_neighbors_adaptive``). If
+        ``None``, the default of the model is used.
     """
     exported_model = _get_upet_exported_atomistic_model(
-        model=model, size=size, version=version, checkpoint_path=checkpoint_path
+        model=model,
+        size=size,
+        version=version,
+        checkpoint_path=checkpoint_path,
+        num_neighbors=num_neighbors,
     )
 
     # TorchScript the inner model
@@ -304,6 +407,7 @@ def save_upet(
     version: Optional[str] = "latest",
     checkpoint_path: Optional[Union[str, Path]] = None,
     output: Optional[Union[str, Path]] = None,
+    num_neighbors: Optional[int] = None,
 ):
     """
     Save the UPET model to a TorchScript file. These files can be used with
@@ -315,9 +419,17 @@ def save_upet(
     :param checkpoint_path: path to a checkpoint file to load the model from.
     :param output: path for the output model. Defaults to "{model}-{size}-v{version}.pt"
         or "model.pt" for non-standard checkpoint names.
+    :param num_neighbors: target number of neighbors of the adaptive cutoff. Only
+        available for models trained with a variable number of neighbors, and must
+        be within the training range (``variable_num_neighbors_adaptive``). If
+        ``None``, the default of the model is used.
     """
     exported_model = _get_upet_exported_atomistic_model(
-        model=model, size=size, version=version, checkpoint_path=checkpoint_path
+        model=model,
+        size=size,
+        version=version,
+        checkpoint_path=checkpoint_path,
+        num_neighbors=num_neighbors,
     )
 
     if output is None:

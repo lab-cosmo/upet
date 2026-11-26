@@ -76,7 +76,7 @@ from nvalchemi.models.base import (
 )
 from torch import nn
 
-from .._models import _resolve_and_download_checkpoint
+from .._models import _resolve_and_download_checkpoint, check_num_neighbors
 from .utils import (
     ENERGY_OUTPUT_SHAPES,
     decode_tensor_map_values,
@@ -134,12 +134,14 @@ class UPETWrapper(nn.Module, BaseModelMixin):
 
         self.atomic_types = list(atomic_types)
         self.hypers = normalize_hypers(hypers)
-        # Width of the adaptive-cutoff smooth taper; not cached on
-        # ``PETBackend`` itself, so the wrapper keeps its own copy to pass
-        # into ``preprocess`` at call time.
-        self._cutoff_width_adaptive = float(self.hypers["cutoff_width_adaptive"])
 
         self.backend = PETBackend(self.hypers, self.atomic_types)
+        # The backend does not read the adaptive-cutoff targets from the
+        # hypers: like ``PET``, set them right after creating it.
+        self.backend._set_num_neighbors_adaptive(
+            self.hypers["num_neighbors_adaptive"],
+            self.hypers["variable_num_neighbors_adaptive"],
+        )
         self.backend.add_output("energy", ENERGY_OUTPUT_SHAPES)
 
         # Set to True by `from_checkpoint(compile_model=True)`, which
@@ -263,7 +265,8 @@ class UPETWrapper(nn.Module, BaseModelMixin):
             single-graph ``Batch``.
         :return: Keyword arguments for ``PETBackend.preprocess``:
             ``positions``, ``centers``, ``neighbors``, ``species``,
-            ``cells``, ``cell_shifts``, ``system_indices``.
+            ``cells``, ``cell_shifts``, ``cell_contributions``,
+            ``system_indices``.
         """
         if isinstance(data, AtomicData):
             data = Batch.from_data_list([data])
@@ -293,7 +296,8 @@ class UPETWrapper(nn.Module, BaseModelMixin):
 
         :param data: Batch whose ``positions`` are already prepared.
         :param dtype: Model dtype, used to cast ``cells``.
-        :return: Keyword arguments for ``PETBackend.preprocess``.
+        :return: Keyword arguments for ``PETBackend.preprocess``, plus the
+            ``cells`` needed by ``PETBackend.predict``.
         """
         positions = data.positions
         device = positions.device
@@ -325,6 +329,17 @@ class UPETWrapper(nn.Module, BaseModelMixin):
         else:
             cells = raw_cell.to(dtype=dtype, device=device)
 
+        # Contributions of the cell shifts to the edge vectors [E, 3], computed
+        # the same way as metatrain's ``concatenate_structures``.
+        if num_graphs == 1:
+            cell_contributions = cell_shifts.to(dtype) @ cells[0]
+        else:
+            cell_contributions = torch.einsum(
+                "ea,eab->eb",
+                cell_shifts.to(dtype),
+                cells[system_indices[centers]],
+            )
+
         return {
             "positions": positions,
             "centers": centers,
@@ -332,6 +347,7 @@ class UPETWrapper(nn.Module, BaseModelMixin):
             "species": species,
             "cells": cells,
             "cell_shifts": cell_shifts,
+            "cell_contributions": cell_contributions,
             "system_indices": system_indices,
         }
 
@@ -417,10 +433,10 @@ class UPETWrapper(nn.Module, BaseModelMixin):
                 inputs["centers"],
                 inputs["neighbors"],
                 inputs["species"],
-                inputs["cells"],
+                inputs["cell_contributions"],
                 inputs["cell_shifts"],
                 inputs["system_indices"],
-                self._cutoff_width_adaptive,
+                int(data.num_graphs),
             )
             node_features_list, edge_features_list = self.backend.calculate_features(
                 batch_data
@@ -526,10 +542,10 @@ class UPETWrapper(nn.Module, BaseModelMixin):
                     inputs["centers"],
                     inputs["neighbors"],
                     inputs["species"],
-                    inputs["cells"],
+                    inputs["cell_contributions"],
                     inputs["cell_shifts"],
                     inputs["system_indices"],
-                    self._cutoff_width_adaptive,
+                    int(data.num_graphs),
                 )
                 node_features_list, edge_features_list = (
                     self.backend.calculate_features(batch_data)
@@ -578,6 +594,7 @@ class UPETWrapper(nn.Module, BaseModelMixin):
         checkpoint_path: Path | str | None = None,
         device: torch.device | None = None,
         compile_model: bool = False,
+        num_neighbors: int | None = None,
         **compile_kwargs: Any,
     ) -> "UPETWrapper":
         """Load a UPET/PET checkpoint from disk or HuggingFace.
@@ -610,12 +627,18 @@ class UPETWrapper(nn.Module, BaseModelMixin):
         :param compile_model: ``torch.compile`` the three backend building
             blocks. Sets eval mode and freezes parameters; the model is
             **inference-only** after this step.
+        :param num_neighbors: Target number of neighbors of the adaptive
+            cutoff. Only available for models trained with a variable number
+            of neighbors, and must be within the training range (the
+            ``variable_num_neighbors_adaptive`` hyper-parameter). It is set
+            before compiling. If ``None``, the default of the model is used.
         :param compile_kwargs: Forwarded verbatim to each ``torch.compile``
             call (e.g. ``fullgraph=True``, ``mode=...``, ``dynamic=...``).
         :return: The loaded wrapper.
         :raises ValueError: When ``compile_model`` is requested for a
-            ``'grid'`` adaptive-cutoff model, or when neither
-            *checkpoint_path* nor *model* is given.
+            ``'grid'`` adaptive-cutoff model, when neither
+            *checkpoint_path* nor *model* is given, or when *num_neighbors*
+            is not supported by the model.
         :raises FileNotFoundError: When *checkpoint_path* is neither an
             existing local file nor a parseable named model.
         """
@@ -652,6 +675,9 @@ class UPETWrapper(nn.Module, BaseModelMixin):
 
         model_data = raw["model_data"]
         hypers = dict(model_data["model_hypers"])
+        if num_neighbors is not None:
+            check_num_neighbors(hypers, num_neighbors)
+            hypers["num_neighbors_adaptive"] = num_neighbors
         atomic_types = list(model_data["dataset_info"].atomic_types)
         # Prefer the best weights (``best_model_state_dict``); fall back to
         # the last epoch (``model_state_dict``). Exported / best-only

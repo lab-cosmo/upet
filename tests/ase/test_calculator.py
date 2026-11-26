@@ -40,3 +40,8 @@ def test_info_change_invalidates_cache():
         reference.reset()
         expected = reference.get_potential_energy(atoms)
         assert atoms.get_potential_energy() == pytest.approx(expected, abs=1e-5)
+
+
+def test_num_neighbors_out_of_range():
+    with pytest.raises(ValueError, match="num_neighbors"):
+        UPETCalculator(model="pet-mad-xs", num_neighbors=10_000)
